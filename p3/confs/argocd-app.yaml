@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/annfike/42_Inception_of_Things.git
+    repoURL: https://github.com/annfike/42_Inception_of_Things_adelaloy.git
     targetRevision: HEAD
     path: p3/confs/manifests
   destination:

@@ -38,7 +38,7 @@ spec:
     spec:
       containers:
         - name: gitlab
-          image: gitlab/gitlab-ce:latest
+          image: gitlab/gitlab-ce:17.5.4-ce.0
           ports:
             - containerPort: 80
               name: http
@@ -54,9 +54,11 @@ spec:
                 nginx['listen_port'] = 80
                 nginx['listen_https'] = false
                 prometheus_monitoring['enable'] = false
-                sidekiq['max_concurrency'] = 5
+                gitlab_kas['enable'] = false
+                grafana['enable'] = false
+                sidekiq['max_concurrency'] = 3
                 postgresql['shared_buffers'] = "128MB"
-                puma['worker_processes'] = 2
+                puma['worker_processes'] = 1
           volumeMounts:
             - name: gitlab-data
               mountPath: /var/opt/gitlab

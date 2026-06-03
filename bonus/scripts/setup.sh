@@ -102,6 +102,8 @@ install_gitlab() {
     deployment/gitlab -n "$GITLAB_NS" || \
     warn "GitLab not fully ready yet. Check: kubectl get pods -n $GITLAB_NS"
 
+  bash "$(dirname "$0")/gitlab-bootstrap.sh"
+
   info "GitLab pods:"
   kubectl get pods -n "$GITLAB_NS"
 }

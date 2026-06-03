@@ -42,18 +42,21 @@ The bonus part extends Part 3 by replacing the public GitHub repository with a *
 
 ### GitLab Configuration
 The GitLab instance is configured with reduced resource usage to run in a development cluster:
-- Prometheus monitoring disabled
-- Sidekiq limited to 5 concurrent jobs
+- Image: `gitlab/gitlab-ce:17.5.4-ce.0` (pinned CE; subject allows latest, pin avoids drift)
+- Prometheus, KAS, and Grafana disabled
+- Sidekiq limited to 3 concurrent jobs
 - PostgreSQL shared buffers reduced to 128MB
-- Puma limited to 2 worker processes
+- Puma limited to 1 worker process
 - Initial root password: `password123`
+- `scripts/gitlab-bootstrap.sh` seeds DB and ensures `root` / `password123` after deploy
 
 ## File Structure
 
 ```
 bonus/
 ├── scripts/
-│   └── setup.sh                  # Full setup: K3d + GitLab + Argo CD
+│   ├── setup.sh                  # Full setup: K3d + GitLab + Argo CD
+│   └── gitlab-bootstrap.sh       # Ensure root user and password (also run standalone)
 └── confs/
     ├── gitlab.yaml               # GitLab K8s manifests (Deployment, Service, PVC)
     └── argocd-app-gitlab.yaml    # Argo CD Application pointing to local GitLab
@@ -79,8 +82,9 @@ The script installs:
 2. Creates a K3d cluster with port mappings
 3. Creates `argocd`, `dev`, and `gitlab` namespaces
 4. Deploys GitLab CE in the `gitlab` namespace
-5. Installs Argo CD in the `argocd` namespace
-6. Prints access information
+5. Runs `gitlab-bootstrap.sh` (root account + `password123`)
+6. Installs Argo CD in the `argocd` namespace
+7. Prints access information
 
 ### 2. Access GitLab
 
@@ -95,6 +99,12 @@ open http://localhost:8181
 Login credentials:
 - **Username:** `root`
 - **Password:** `password123`
+
+If login fails after setup, run:
+
+```bash
+bash scripts/gitlab-bootstrap.sh
+```
 
 ### 3. Create a project in GitLab
 
@@ -251,8 +261,11 @@ The `gitlab.yaml` creates:
 
 ### GitLab Environment Tuning
 ```
-prometheus_monitoring['enable'] = false     # Save resources
-sidekiq['max_concurrency'] = 5              # Limit background jobs
-postgresql['shared_buffers'] = "128MB"      # Reduce memory usage
-puma['worker_processes'] = 2                # Limit web server workers
+prometheus_monitoring['enable'] = false
+gitlab_kas['enable'] = false
+grafana['enable'] = false
+sidekiq['max_concurrency'] = 3
+postgresql['shared_buffers'] = "128MB"
+puma['worker_processes'] = 1
+gitlab_rails['initial_root_password'] = 'password123'
 ```

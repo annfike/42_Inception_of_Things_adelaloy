@@ -5,7 +5,7 @@ This document describes how to **set up** the Bonus part and how to **prove it w
 ## 0) What the Bonus must demonstrate (subject requirements)
 
 - Everything from Part 3, but using a **local GitLab** instead of a public GitHub repo
-- GitLab CE runs **locally** inside the K3d cluster (latest version)
+- GitLab CE runs **locally** inside the K3d cluster (`gitlab/gitlab-ce:17.5.4-ce.0` in `gitlab.yaml`)
 - A dedicated namespace named **`gitlab`**
 - Argo CD deploys the application from the **local GitLab** repository
 - Version update (`v1 → v2`) via a push to GitLab triggers automatic sync
@@ -32,6 +32,15 @@ bash scripts/setup.sh
 ```
 
 **Expected**: the script completes without errors. It prints access info for GitLab and Argo CD.
+
+`setup.sh` runs `scripts/gitlab-bootstrap.sh` after GitLab deploy (creates/fixes `root` / `password123`).
+
+If GitLab login fails:
+
+```bash
+cd bonus
+bash scripts/gitlab-bootstrap.sh
+```
 
 ## 3) Post-setup manual steps
 
@@ -115,6 +124,14 @@ kubectl get pods -n gitlab
 **Expected**:
 - Pod `gitlab-<hash>` is `Running`
 - `READY` is `1/1`
+
+Optional — root account exists:
+
+```bash
+kubectl exec -n gitlab deployment/gitlab -- gitlab-rails runner 'puts User.count'
+```
+
+**Expected**: `1` or higher (not `0`).
 
 ### 4.4 Argo CD is running
 

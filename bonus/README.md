@@ -34,6 +34,10 @@ The bonus part extends Part 3 by replacing the public GitHub repository with a *
 - Exposed internally as `gitlab.gitlab.svc.cluster.local`
 - Accessible from the host via `kubectl port-forward`
 
+### One cluster, not separate VMs
+
+K3d creates **one** cluster (`iot-bonus`) in Docker. GitLab, Argo CD, and the app are pods in the **same** cluster, in namespaces `gitlab`, `argocd`, and `dev` — not three separate virtual machines. **Nodes** vs **pods**: [`docs/bonus-config-guide.md`](../docs/bonus-config-guide.md) § *Cluster layout* / *Nodes vs pods* (details also in [`p3-config-guide.md`](../docs/p3-config-guide.md)).
+
 ### Full GitOps Loop (No External Dependencies)
 1. Developer pushes code to **local GitLab** (inside the cluster)
 2. **Argo CD** monitors the GitLab repository via the in-cluster service URL

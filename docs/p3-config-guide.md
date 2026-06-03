@@ -16,6 +16,44 @@ deployment.yaml   →  Lives in GitHub; describes the app (Deployment + Service)
 3. Argo CD clones the public GitHub repo, reads `p3/confs/manifests/deployment.yaml`, and creates resources in `dev`.
 4. To change the running app, you **edit and push** `deployment.yaml` on GitHub (e.g. image tag `v1` → `v2`). Argo CD syncs automatically.
 
+## Cluster layout (common misconception)
+
+Part 3 does **not** create two virtual machines — one for Argo CD and one for the application.
+
+| What you get | What it is |
+|--------------|------------|
+| **One k3d cluster** (`iot`) | A single Kubernetes cluster running inside Docker |
+| **k3d nodes** (1 server + 2 agents) | Docker **containers** that act as Kubernetes control-plane and worker **nodes** — not separate VMs per service |
+| **Namespace `argocd`** | Pods for Argo CD (GitOps controller) |
+| **Namespace `dev`** | Pods for `wil-playground` (deployed by Argo CD) |
+| **GitHub** | **Outside** the cluster; only stores YAML. Argo CD clones it over the network |
+
+Argo CD and the application run in the **same** cluster, separated by **namespaces**. Git is the source of truth; the cluster is where workloads execute.
+
+```
+Host (Docker)
+ └── k3d cluster "iot"
+      ├── namespace argocd   → Argo CD pods
+      └── namespace dev      → wil-playground pods (synced from GitHub)
+GitHub (internet)            → p3/confs/manifests/deployment.yaml
+```
+
+### Nodes vs pods
+
+These are different layers of Kubernetes — easy to mix up during defense.
+
+| | **Node** | **Pod** |
+|---|----------|---------|
+| **Level** | Cluster infrastructure | Application workload |
+| **What it is** | A machine (here: a Docker container running k3s as server or agent) | One or more containers scheduled **onto** a node |
+| **In this project** | `k3d cluster create` → 1 server + 2 agents = **3 nodes** | Argo CD components, `wil-playground`, etc. — each runs as **pods** |
+| **Check with** | `kubectl get nodes` | `kubectl get pods -n argocd` / `-n dev` |
+
+- **Namespace** (`argocd`, `dev`) groups **pods** logically; it does not create extra nodes.
+- **Deployment** (in `deployment.yaml`) tells the cluster how many **pods** to run and which image to use; the scheduler places those pods on available **nodes**.
+
+**Analogy:** node = server in a datacenter; pod = your app process running on that server.
+
 ---
 
 ## 1. `p3/scripts/setup.sh`

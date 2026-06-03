@@ -23,6 +23,41 @@ deployment.yaml       →  Pushed into GitLab project playground/manifests/
 
 **Important:** Argo CD reads manifests from **GitLab**, not from your laptop copy. The copy under `bonus/confs/manifests/` is the template you push.
 
+## Cluster layout (common misconception)
+
+Bonus does **not** create separate virtual machines for GitLab, Argo CD, and the application.
+
+| What you get | What it is |
+|--------------|------------|
+| **One k3d cluster** (`iot-bonus`) | A single Kubernetes cluster inside Docker (separate from Part 3’s `iot` cluster) |
+| **k3d nodes** (1 server + 2 agents) | Docker **containers** as Kubernetes nodes — not one VM per service |
+| **Namespace `gitlab`** | GitLab CE pod(s) + PVC (in-cluster Git server) |
+| **Namespace `argocd`** | Argo CD pods |
+| **Namespace `dev`** | `wil-playground` pods (deployed by Argo CD from GitLab) |
+
+GitLab, Argo CD, and the app all run in the **same** cluster, isolated by **namespaces**. Argo CD reaches GitLab via in-cluster DNS (`gitlab.gitlab.svc.cluster.local`), not via the public internet.
+
+```
+Host (Docker)
+ └── k3d cluster "iot-bonus"
+      ├── namespace gitlab   → GitLab CE
+      ├── namespace argocd   → Argo CD
+      └── namespace dev      → wil-playground (synced from GitLab repo playground)
+```
+
+### Nodes vs pods
+
+Same as Part 3 — see `docs/p3-config-guide.md` § *Nodes vs pods* for the full table.
+
+In Bonus you still have **3 k3d nodes** (1 server + 2 agents) in cluster `iot-bonus`. **GitLab**, **Argo CD**, and **`wil-playground`** are **pods** scheduled onto those nodes, in namespaces `gitlab`, `argocd`, and `dev` respectively.
+
+| Check | Command |
+|-------|---------|
+| Nodes | `kubectl get nodes` |
+| GitLab pods | `kubectl get pods -n gitlab` |
+| Argo CD pods | `kubectl get pods -n argocd` |
+| App pods | `kubectl get pods -n dev` |
+
 ---
 
 ## 1. `bonus/scripts/setup.sh`

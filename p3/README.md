@@ -44,6 +44,10 @@ Part 3 sets up a lightweight Kubernetes cluster using **K3d** (K3s running insid
 3. When a change is detected, Argo CD **automatically syncs** the cluster state to match the desired state in Git
 4. The application is updated without manual intervention
 
+### One cluster, not separate VMs
+
+K3d creates **one** Kubernetes cluster in Docker (1 control-plane node + 2 agents). Argo CD and the app are **not** on different virtual machines — they run as pods in the **same** cluster, in different **namespaces** (`argocd` vs `dev`). GitHub stays **outside** the cluster; Argo CD pulls manifests from there. **Nodes** (machines) vs **pods** (apps): [`docs/p3-config-guide.md`](../docs/p3-config-guide.md) § *Cluster layout* and *Nodes vs pods*.
+
 ### Namespaces
 | Namespace | Purpose |
 |-----------|---------|

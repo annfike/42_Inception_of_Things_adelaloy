@@ -135,7 +135,6 @@ install_argocd() {
   echo "$password" > /tmp/argocd-password
 }
 
-# ─── 6. Configure ArgoCD to use GitLab ──────────────────────────────
 configure_argocd_gitlab() {
   info "Configuring Argo CD to use local GitLab..."
 
@@ -159,7 +158,6 @@ configure_argocd_gitlab() {
   fi
 }
 
-# ─── 7. Print summary ───────────────────────────────────────────────
 print_summary() {
   info "============================================="
   info "  BONUS SETUP COMPLETE"
@@ -182,7 +180,6 @@ print_summary() {
   echo ""
 }
 
-# ─── Main ────────────────────────────────────────────────────────────
 main() {
   info "Starting Inception of Things - Bonus setup (GitLab)..."
   install_prerequisites

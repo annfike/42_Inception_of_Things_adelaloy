@@ -54,6 +54,34 @@ These are different layers of Kubernetes — easy to mix up during defense.
 
 **Analogy:** node = server in a datacenter; pod = your app process running on that server.
 
+### Docker Desktop: `k3d-iot-*` containers (not extra clusters)
+
+After `setup.sh`, Docker Desktop lists several containers. Names look like `k3d-<cluster>-<role>`. For cluster **`iot`** (from `CLUSTER_NAME="iot"`):
+
+| Container name | Role |
+|----------------|------|
+| `k3d-iot-server-0` | Kubernetes **control-plane node** (API, scheduler) — counts as 1 of 3 **nodes** in `kubectl get nodes` |
+| `k3d-iot-agent-0`, `k3d-iot-agent-1` | **Worker nodes** — where app pods are usually scheduled |
+| `k3d-iot-serverlb` | k3d **load balancer** — maps host ports **8888** (app) and **8080** (Argo CD UI) into the cluster |
+| `k3d-iot-tools` | k3d **helper** image (`k3d-tools`) for cluster setup — **not** a node, **not** a separate cluster named `iot-tools` |
+
+**Common confusion:** `k3d-iot-tools` means cluster **`iot`** + suffix **`tools`**, not a cluster called `iot-tools`. Verify:
+
+```bash
+k3d cluster list                    # NAME should be iot
+docker inspect k3d-iot-tools --format '{{index .Config.Labels "k3d.cluster"}}'   # prints: iot
+```
+
+**Kubernetes pods** (Argo CD, `wil-playground`) do **not** appear as separate top-level names in Docker Desktop the same way; list them with:
+
+```bash
+kubectl get pods -n argocd
+kubectl get pods -n dev
+kubectl get pods -A -o wide    # optional: which node each pod runs on
+```
+
+Deleting containers manually in Docker Desktop can break the cluster; prefer `k3d cluster delete iot` and re-run `setup.sh`.
+
 ---
 
 ## 1. `p3/scripts/setup.sh`

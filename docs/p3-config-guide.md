@@ -38,6 +38,26 @@ Host (Docker)
 GitHub (internet)            → p3/confs/manifests/deployment.yaml
 ```
 
+### Nodes in the cluster (what each one is)
+
+From `k3d cluster create ... --servers 1 --agents 2`. List them:
+
+```bash
+kubectl get nodes -o wide
+```
+
+You should see **3** nodes. Names look like `k3d-iot-server-0`, `k3d-iot-agent-0`, `k3d-iot-agent-1` (prefix = cluster name `iot`).
+
+| Node name (example) | k3d / Docker container | Role |
+|---------------------|-------------------------|------|
+| `k3d-iot-server-0` | `k3d-iot-server-0` | **Control-plane**: Kubernetes API, scheduler; `kubectl` talks to this node’s API |
+| `k3d-iot-agent-0` | `k3d-iot-agent-0` | **Worker**: runs workload **pods** (often `wil-playground`, parts of Argo CD) |
+| `k3d-iot-agent-1` | `k3d-iot-agent-1` | **Worker**: second worker; scheduler spreads pods across agents |
+
+**Not nodes:** `k3d-iot-serverlb` (load balancer), `k3d-iot-tools` (k3d helper) — see § *Docker Desktop*.
+
+**Bonus / eval:** `kubectl get nodes` → 3 rows, status **Ready**. Optional: `kubectl get pods -A -o wide` → column **NODE** shows which node hosts each pod.
+
 ### Nodes vs pods
 
 These are different layers of Kubernetes — easy to mix up during defense.
@@ -81,6 +101,43 @@ kubectl get pods -A -o wide    # optional: which node each pod runs on
 ```
 
 Deleting containers manually in Docker Desktop can break the cluster; prefer `k3d cluster delete iot` and re-run `setup.sh`.
+
+### Pods in the cluster (what each one does)
+
+Pod names get a random suffix (`argocd-server-7f8b9c-xyz`). The **prefix** is what matters. List live pods:
+
+```bash
+kubectl get pods -n argocd
+kubectl get pods -n dev
+```
+
+#### Namespace `argocd` (installed by `install_argocd()`)
+
+| Pod name prefix | What it does |
+|-----------------|--------------|
+| `argocd-server` | Web UI (http://localhost:8080), API, login as `admin` |
+| `argocd-repo-server` | Clones GitHub, renders manifests from `p3/confs/manifests` |
+| `argocd-application-controller` | Compares Git vs cluster, runs sync for `wil-playground` |
+| `argocd-applicationset-controller` | Part of upstream install manifest (ApplicationSet CRD) |
+| `argocd-redis` | Cache for Argo CD |
+| `argocd-dex-server` | SSO helper (installed by default; not used in this project) |
+| `argocd-notifications-controller` | Optional; may appear depending on Argo CD version |
+
+You do **not** create these YAML files yourself — they come from the official `install.yaml`.
+
+#### Namespace `dev` (deployed by Argo CD from Git)
+
+| Pod name prefix | What it does |
+|-----------------|--------------|
+| `wil-playground` | Runs container `wil42/playground:v1` or `:v2` on port 8888; JSON from `curl http://localhost:8888/` |
+
+Comes from `deployment.yaml` (Deployment + Service). Only **one** pod because `replicas: 1`.
+
+#### What you need for defense
+
+- `argocd`: several pods, all **Running** — proves GitOps controller is up.
+- `dev`: one pod `wil-playground-...` **Running** — proves the app is up.
+- Explain one line each: server = UI, repo-server = Git, application-controller = sync, `wil-playground` = demo API.
 
 ---
 

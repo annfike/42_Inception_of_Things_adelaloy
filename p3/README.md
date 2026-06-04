@@ -46,7 +46,7 @@ Part 3 sets up a lightweight Kubernetes cluster using **K3d** (K3s running insid
 
 ### One cluster, not separate VMs
 
-K3d creates **one** Kubernetes cluster in Docker (1 control-plane node + 2 agents). Argo CD and the app are **not** on different virtual machines — they run as pods in the **same** cluster, in different **namespaces** (`argocd` vs `dev`). GitHub stays **outside** the cluster; Argo CD pulls manifests from there. **Nodes** (machines) vs **pods** (apps): [`docs/p3-config-guide.md`](../docs/p3-config-guide.md) § *Cluster layout* and *Nodes vs pods*.
+K3d creates **one** Kubernetes cluster in Docker (1 control-plane node + 2 agents). Argo CD and the app are **not** on different virtual machines — they run as pods in the **same** cluster, in different **namespaces** (`argocd` vs `dev`). GitHub stays **outside** the cluster; Argo CD pulls manifests from there. **Nodes** and **pods**: [`docs/p3-config-guide.md`](../docs/p3-config-guide.md) § *Nodes in the cluster*, *Pods in the cluster*, *Docker Desktop*.
 
 ### Namespaces
 | Namespace | Purpose |
@@ -54,13 +54,9 @@ K3d creates **one** Kubernetes cluster in Docker (1 control-plane node + 2 agent
 | `argocd` | Argo CD components (server, repo-server, app-controller, etc.) |
 | `dev` | Application workloads deployed by Argo CD |
 
-### Argo CD Components
-- **argocd-server** — API server and Web UI
-- **argocd-repo-server** — Clones and caches Git repositories
-- **argocd-application-controller** — Watches applications and compares live vs desired state
-- **argocd-applicationset-controller** — Manages ApplicationSet resources
-- **argocd-redis** — Caching layer
-- **argocd-dex-server** — SSO integration
+### Argo CD and app pods
+
+See [`docs/p3-config-guide.md`](../docs/p3-config-guide.md) § *Pods in the cluster* for each pod prefix (`argocd-server`, `argocd-repo-server`, `wil-playground`, etc.).
 
 ### Application: wil42/playground
 - Docker image: `wil42/playground` (Docker Hub)

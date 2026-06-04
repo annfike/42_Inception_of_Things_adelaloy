@@ -45,6 +45,16 @@ Host (Docker)
       └── namespace dev      → wil-playground (synced from GitLab repo playground)
 ```
 
+### Nodes in the cluster
+
+Same layout as Part 3 (1 server + 2 agents), but cluster name **`iot-bonus`**. See `docs/p3-config-guide.md` § *Nodes in the cluster* for roles; node names look like `k3d-iot-bonus-server-0`, `k3d-iot-bonus-agent-0`, `k3d-iot-bonus-agent-1`.
+
+```bash
+kubectl get nodes -o wide
+```
+
+GitLab and Argo CD pods are heavy — they often land on **agents**; exact placement is chosen by the scheduler (check with `kubectl get pods -A -o wide`).
+
 ### Nodes vs pods
 
 Same as Part 3 — see `docs/p3-config-guide.md` § *Nodes vs pods* for the full table.
@@ -57,6 +67,38 @@ In Bonus you still have **3 k3d nodes** (1 server + 2 agents) in cluster `iot-bo
 | GitLab pods | `kubectl get pods -n gitlab` |
 | Argo CD pods | `kubectl get pods -n argocd` |
 | App pods | `kubectl get pods -n dev` |
+
+For Docker Desktop container names (`k3d-iot-bonus-server-0`, `k3d-iot-bonus-tools`, etc.) and why `*-tools` is not a separate cluster, see `docs/p3-config-guide.md` § *Docker Desktop: k3d-iot-* containers* (cluster name here is **`iot-bonus`**).
+
+### Pods in the cluster (what each one does)
+
+Pod names end with a random hash. Use the **prefix**. Full list:
+
+```bash
+kubectl get pods -n gitlab
+kubectl get pods -n argocd
+kubectl get pods -n dev
+```
+
+#### Namespace `gitlab` (from `gitlab.yaml`)
+
+| Pod name prefix | What it does |
+|-----------------|--------------|
+| `gitlab` | Single GitLab CE pod (Omnibus): HTTP Git + web UI on port 80 inside the cluster; `kubectl port-forward svc/gitlab -n gitlab 8181:80` for http://localhost:8181. Sidekiq, PostgreSQL, etc. run **inside** this container — not as separate Kubernetes pods in our manifest. |
+
+#### Namespace `argocd`
+
+Same components as Part 3 — see `docs/p3-config-guide.md` § *Pods in the cluster*. Repo URL is GitLab (`argocd-app-gitlab.yaml`) instead of GitHub; pod roles are unchanged.
+
+#### Namespace `dev`
+
+| Pod name prefix | What it does |
+|-----------------|--------------|
+| `wil-playground` | Same demo app as Part 3; manifests synced from GitLab project `playground`, path `manifests`. Test: `curl http://localhost:9888/` (bonus host port). |
+
+#### Bonus defense in one sentence
+
+GitLab pod stores Git; Argo CD pods pull from `gitlab.gitlab.svc.cluster.local`; `wil-playground` pod serves v1/v2 after you push to GitLab.
 
 ---
 

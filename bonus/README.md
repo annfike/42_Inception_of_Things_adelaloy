@@ -36,7 +36,7 @@ The bonus part extends Part 3 by replacing the public GitHub repository with a *
 
 ### One cluster, not separate VMs
 
-K3d creates **one** cluster (`iot-bonus`) in Docker. GitLab, Argo CD, and the app are pods in the **same** cluster, in namespaces `gitlab`, `argocd`, and `dev` — not three separate virtual machines. **Nodes** vs **pods**: [`docs/bonus-config-guide.md`](../docs/bonus-config-guide.md) § *Cluster layout* / *Nodes vs pods* (details also in [`p3-config-guide.md`](../docs/p3-config-guide.md)).
+K3d creates **one** cluster (`iot-bonus`) in Docker. GitLab, Argo CD, and the app are pods in the **same** cluster, in namespaces `gitlab`, `argocd`, and `dev` — not three separate virtual machines. **Nodes** and **pods**: [`docs/bonus-config-guide.md`](../docs/bonus-config-guide.md) § *Nodes in the cluster*, *Pods in the cluster* (Argo CD table in [`p3-config-guide.md`](../docs/p3-config-guide.md)).
 
 ### Full GitOps Loop (No External Dependencies)
 1. Developer pushes code to **local GitLab** (inside the cluster)
@@ -63,8 +63,12 @@ bonus/
 │   └── gitlab-bootstrap.sh       # Ensure root user and password (also run standalone)
 └── confs/
     ├── gitlab.yaml               # GitLab K8s manifests (Deployment, Service, PVC)
-    └── argocd-app-gitlab.yaml    # Argo CD Application pointing to local GitLab
+    ├── argocd-app-gitlab.yaml    # Argo CD Application pointing to local GitLab
+    └── manifests/
+        └── deployment.yaml       # App manifests to push into GitLab project
 ```
+
+See [`docs/bonus-config-guide.md`](../docs/bonus-config-guide.md) (§ *Pods in the cluster*).
 
 ## Prerequisites
 

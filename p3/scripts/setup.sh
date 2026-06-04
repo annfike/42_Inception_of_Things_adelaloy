@@ -82,9 +82,6 @@ create_namespaces() {
 
 install_argocd() {
   info "Installing Argo CD in namespace '$ARGOCD_NS'..."
-  # CRDs in Argo CD install.yaml are large; client-side apply stores the whole
-  # manifest in the "last-applied-configuration" annotation and can hit the
-  # 256KB annotation limit. Server-side apply avoids that.
   kubectl apply --server-side -n "$ARGOCD_NS" \
     -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 

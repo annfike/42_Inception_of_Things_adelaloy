@@ -11,14 +11,20 @@ flannel_iface() {
 swapoff -a || true
 sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab || true
 
-echo "[worker] waiting for node token..."
+if [[ ! -d /vagrant ]]; then
+  echo "[worker] ERROR: /vagrant not mounted (VirtualBox shared folder failed)." >&2
+  echo "[worker] Run: vagrant reload adelaloySW" >&2
+  exit 1
+fi
+
+echo "[worker] waiting for node token (max ~6 min)..."
 for i in {1..120}; do
   [[ -s /vagrant/node-token ]] && break
   sleep 3
 done
 if [[ ! -s /vagrant/node-token ]]; then
   echo "[worker] ERROR: /vagrant/node-token missing." >&2
-  echo "[worker] Run: vagrant up adelaloyS  (or vagrant provision adelaloyS)" >&2
+  echo "[worker] Run: vagrant provision adelaloyS, then vagrant reload adelaloySW" >&2
   exit 1
 fi
 TOKEN="$(tr -d '\r\n' < /vagrant/node-token)"

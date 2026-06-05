@@ -17,20 +17,25 @@ if [[ -z "${FLANNEL_IFACE}" ]]; then
   exit 1
 fi
 
-echo "[server] installing k3s (flannel on ${FLANNEL_IFACE})..."
-export INSTALL_K3S_EXEC="server \
-  --write-kubeconfig-mode 644 \
-  --node-ip ${SERVER_IP} \
-  --bind-address ${SERVER_IP} \
-  --advertise-address ${SERVER_IP} \
-  --tls-san ${SERVER_IP} \
-  --flannel-iface ${FLANNEL_IFACE}"
-
-curl -sfL https://get.k3s.io | sh -
+if command -v k3s &>/dev/null && systemctl is-active --quiet k3s; then
+  echo "[server] k3s already running, skipping install"
+else
+  echo "[server] installing k3s (flannel on ${FLANNEL_IFACE})..."
+  export INSTALL_K3S_EXEC="server \
+    --write-kubeconfig-mode 644 \
+    --node-ip ${SERVER_IP} \
+    --bind-address ${SERVER_IP} \
+    --advertise-address ${SERVER_IP} \
+    --tls-san ${SERVER_IP} \
+    --flannel-iface ${FLANNEL_IFACE} \
+    --disable traefik"
+  curl -sfL https://get.k3s.io | sh -
+fi
 
 echo "[server] waiting for API..."
-until kubectl get nodes &>/dev/null; do
-  sleep 2
+for i in {1..90}; do
+  k3s kubectl get nodes &>/dev/null && break
+  sleep 3
 done
 
 mkdir -p /vagrant
@@ -47,4 +52,4 @@ chmod 600 /home/vagrant/.kube/config
 grep -q 'alias k=' /home/vagrant/.bashrc 2>/dev/null || echo 'alias k="kubectl"' >> /home/vagrant/.bashrc
 
 echo "[server] ready"
-kubectl get nodes -o wide
+k3s kubectl get nodes -o wide

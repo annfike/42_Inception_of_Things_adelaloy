@@ -8,8 +8,17 @@ WORKER_NAME = "#{LOGIN}SW"
 SERVER_IP = "192.168.56.110"
 WORKER_IP = "192.168.56.111"
 
+# Apple Silicon: VirtualBox runs arm64 guests only; generic/ubuntu2204 is amd64-only.
+# Use hw.optional.arm64 — uname -m is x86_64 when Vagrant/Terminal runs under Rosetta.
+MAC_ARM64 = RUBY_PLATFORM.include?("darwin") &&
+            `sysctl -n hw.optional.arm64 2>/dev/null`.strip == "1"
+BOX = MAC_ARM64 ? "bento/ubuntu-22.04" : "generic/ubuntu2204"
+BOX_VERSION = MAC_ARM64 ? "202502.21.0" : nil
+
 Vagrant.configure("2") do |config|
-  config.vm.box = "generic/ubuntu2204"
+  config.vm.box = BOX
+  config.vm.box_version = BOX_VERSION if BOX_VERSION
+  config.vm.box_architecture = "arm64" if MAC_ARM64
 
   config.vm.define SERVER_NAME do |server|
     server.vm.hostname = SERVER_NAME

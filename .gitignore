@@ -29,6 +29,8 @@ logs/
 # Vagrant
 .vagrant/
 *.box
+p1/node-token
+p1/kubeconfig
 
 # VirtualBox
 *.vdi
@@ -72,3 +74,5 @@ venv/
 
 train/
 val_list.pdf
+sergey/
+p1/README.md

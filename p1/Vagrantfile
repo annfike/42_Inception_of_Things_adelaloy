@@ -48,7 +48,9 @@ Vagrant.configure("2") do |config|
       v.cpu_model = "cortex-a72"
       v.loader = "/usr/share/AAVMF/AAVMF_CODE.fd"
       v.nvram = "/usr/share/AAVMF/AAVMF_VARS.fd"
-      v.inputs = [{ type: "tablet", bus: "virtio" }]
+      v.graphics_type = "none"
+      v.video_type = "none"
+      v.input :type => "mouse", :bus => "virtio"
     end
 
     server.vm.synced_folder ".", "/vagrant", type: "rsync"
@@ -75,7 +77,9 @@ Vagrant.configure("2") do |config|
       v.cpu_model = "cortex-a72"
       v.loader = "/usr/share/AAVMF/AAVMF_CODE.fd"
       v.nvram = "/usr/share/AAVMF/AAVMF_VARS.fd"
-      v.inputs = [{ type: "tablet", bus: "virtio" }]
+      v.graphics_type = "none"
+      v.video_type = "none"
+      v.input :type => "mouse", :bus => "virtio"
     end
 
     worker.vm.synced_folder ".", "/vagrant", type: "rsync"

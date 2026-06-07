@@ -13,6 +13,13 @@ NC='\033[0m'
 info() { echo -e "${GREEN}>>> $1${NC}"; }
 warn() { echo -e "${YELLOW}>>> $1${NC}"; }
 
+install_binfmt() {
+  if [ "$(uname -m)" != "x86_64" ]; then
+    info "ARM host detected — installing amd64 binfmt emulation..."
+    docker run --privileged --rm tonistiigi/binfmt --install amd64
+  fi
+}
+
 install_docker() {
   if command -v docker &>/dev/null; then
     info "Docker is already installed: $(docker --version)"
@@ -61,6 +68,7 @@ ensure_docker_access() {
 install_prerequisites() {
   install_docker
   ensure_docker_access
+  install_binfmt
   info "Docker: $(docker --version)"
 
   if ! command -v k3d &>/dev/null; then

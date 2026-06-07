@@ -12,6 +12,13 @@ NC='\033[0m'
 info() { echo -e "${GREEN}>>> $1${NC}"; }
 warn() { echo -e "${YELLOW}>>> $1${NC}"; }
 
+install_binfmt() {
+  if [ "$(uname -m)" != "x86_64" ]; then
+    info "ARM host detected — installing amd64 binfmt emulation..."
+    docker run --privileged --rm tonistiigi/binfmt --install amd64
+  fi
+}
+
 install_docker() {
   if command -v docker &>/dev/null; then
     info "Docker is already installed: $(docker --version)"
@@ -196,6 +203,7 @@ main() {
   info "Starting Inception of Things - Part 3 setup..."
   install_docker
   ensure_docker_access
+  install_binfmt
   install_k3d
   install_kubectl
   create_cluster

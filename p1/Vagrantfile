@@ -43,6 +43,7 @@ Vagrant.configure("2") do |config|
       v.cpus = 1
       v.driver = "qemu"
       v.machine_type = "virt"
+      v.loader = "/usr/share/AAVMF/AAVMF_CODE.fd"
     end
 
     server.vm.synced_folder ".", "/vagrant", type: "rsync"
@@ -64,6 +65,7 @@ Vagrant.configure("2") do |config|
       v.cpus = 1
       v.driver = "qemu"
       v.machine_type = "virt"
+      v.loader = "/usr/share/AAVMF/AAVMF_CODE.fd"
     end
 
     worker.vm.synced_folder ".", "/vagrant", type: "rsync"

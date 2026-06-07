@@ -1,122 +1,184 @@
-# Part 1: Nested Virtualization on macOS vs Linux
+# Part 1: Running Vagrant Inside a Linux VM (Nested Virtualization)
 
-Part 1 requires Vagrant to create two VMs (K3s server + agent). Vagrant needs a hypervisor (VirtualBox, libvirt/KVM, VMware, etc.) to run those VMs. This document explains why Part 1 works differently depending on your host OS and whether you run Vagrant inside a VM.
-
----
-
-## The Problem
-
-The 42 subject states: *"The whole project has to be done in a virtual machine."*
-
-For Part 1, Vagrant itself creates VMs. If you also run Vagrant **inside** a VM (to satisfy the subject requirement), you get nested virtualization: a VM inside a VM.
-
-```
-Host OS → VM (Ubuntu) → Vagrant → VM (K3s server)
-                                 → VM (K3s worker)
-```
-
-Whether this works depends on the **host hypervisor's** support for nested virtualization.
+Part 1 requires Vagrant to create two VMs (K3s server + agent). This document explains how to run Part 1 inside a Linux VM using nested virtualization with KVM/libvirt.
 
 ---
 
-## Linux Host vs macOS Host
+## Requirements
 
-| | Linux Host | macOS Host (Apple Silicon) |
-|--|-----------|---------------------------|
-| Host hypervisor | KVM | Apple Hypervisor.framework (UTM) |
-| Nested virtualization | **Supported** | **Not supported** |
-| `/dev/kvm` inside guest | Yes (with config) | No |
-| Vagrant inside guest VM | Works (hardware-accelerated) | Fails or extremely slow |
+| Component | Minimum |
+|-----------|---------|
+| Host OS | Linux with KVM support |
+| Guest OS | Ubuntu 22.04+ (amd64 or arm64) |
+| Guest RAM | 4 GB+ (two 1 GB VMs + host overhead) |
+| Guest disk | 20 GB free |
+| `/dev/kvm` in guest | Must exist (nested virt enabled on host) |
 
-### Why Linux works
+---
 
-KVM (Linux's hypervisor) supports **nested virtualization**. When you create a VM on a Linux host, you can expose hardware virtualization to the guest:
+## Why This Works on Linux but Not macOS
 
-```bash
-# On the Linux host, enable nested virt:
-echo "options kvm_intel nested=1" | sudo tee /etc/modprobe.d/kvm.conf  # Intel
-echo "options kvm_amd nested=1" | sudo tee /etc/modprobe.d/kvm.conf    # AMD
-```
+Both setups involve the same nesting: Host → VM → Vagrant → VMs inside.
 
-After this, `/dev/kvm` appears inside the guest VM. Vagrant + libvirt/VirtualBox inside the guest can use hardware acceleration. VMs boot in seconds.
+The difference is the **host hypervisor**:
 
-### Why macOS (Apple Silicon) does not work
-
-Apple's **Hypervisor.framework** does not support nested virtualization. Here's why this matters and what it means technically.
+| Host | Hypervisor | Nested virtualization | `/dev/kvm` in guest |
+|------|-----------|----------------------|---------------------|
+| Linux | KVM | **Supported** | Yes |
+| macOS (Apple Silicon) | Hypervisor.framework | **Not supported** | No |
 
 **How hardware virtualization works:**
 
-Modern CPUs have special extensions that let a hypervisor run guest code directly on the CPU without translating each instruction. On x86 Intel this is VT-x, on x86 AMD it's AMD-V, on ARM it's EL2 (Exception Level 2). When a hypervisor uses these extensions, the guest runs at near-native speed because most instructions execute on real hardware.
+Modern CPUs have extensions that let a hypervisor run guest code directly on hardware (Intel VT-x, AMD-V, ARM EL2). The guest runs at near-native speed because most instructions execute on real silicon.
 
 **What nested virtualization requires:**
 
-When a guest VM itself wants to act as a hypervisor (to run a VM inside a VM), the host hypervisor must **trap and emulate** the guest's attempts to use hardware virtualization extensions. This is complex: the host must intercept every privileged operation the inner hypervisor performs and simulate the expected hardware behavior. KVM on Linux implements this. Apple chose not to.
+When a guest VM wants to act as a hypervisor itself, the host hypervisor must trap and emulate the guest's virtualization operations. This is complex: the host intercepts every privileged operation the inner hypervisor performs and simulates the expected hardware behavior.
 
-**Why Apple didn't implement it:**
+- **KVM (Linux)** implements this. It can expose `/dev/kvm` to guests, giving them hardware-accelerated virtualization.
+- **Apple Hypervisor.framework** does not implement this. Apple optimizes for single-layer desktop virtualization. Nested virt adds complexity, performance overhead from double-trapping, and security attack surface — Apple chose not to support it.
 
-Apple's Hypervisor.framework is a minimal, security-focused API. It exposes just enough to run one layer of VMs efficiently. Nested virtualization adds significant complexity (performance overhead from double-trapping, security attack surface, engineering effort) and Apple's target audience (app developers testing in simulators/VMs) rarely needs it. Unlike server-oriented Linux/KVM where nested virt is common for cloud workloads (VM inside VM for testing), Apple optimizes for single-layer desktop virtualization.
+**Without `/dev/kvm`:**
 
-**The result inside the guest:**
-
-- `/dev/kvm` does not exist — the CPU's virtualization extensions are not visible
-- VirtualBox: does not exist for arm64 at all
-- libvirt with KVM: fails immediately (`could not get preferred machine ... type=kvm`)
-- libvirt with QEMU (pure software emulation): technically starts, but QEMU must translate every single CPU instruction in software — this is 50-100x slower. A VM that boots in 30 seconds on bare metal takes 30+ minutes under emulation, and Vagrant times out waiting for an IP address
+QEMU falls back to pure software emulation — translating every CPU instruction in software. This is 50–100x slower. A VM that boots in 30 seconds on bare metal takes 30+ minutes, making Vagrant unusable.
 
 ---
 
-## Options for Part 1 on Apple Silicon Mac
+## Setup: Linux Host with Nested Virtualization
 
-### Option 1: Run Vagrant directly on macOS (recommended)
+### 1. Enable nested virt on the host
 
-Skip the outer VM for Part 1. Install Vagrant + a provider natively on macOS:
-
-| Provider | Notes |
-|----------|-------|
-| VMware Fusion | Free Personal Use license. Install `vagrant-vmware-desktop` plugin. |
-| Parallels Desktop | Paid. Install `vagrant-parallels` plugin. |
+On the **Linux host** (not inside the VM):
 
 ```bash
-# macOS: install Vagrant (arm64 build exists for macOS)
+# Intel:
+echo "options kvm_intel nested=1" | sudo tee /etc/modprobe.d/kvm-nested.conf
+sudo modprobe -r kvm_intel && sudo modprobe kvm_intel
+
+# AMD:
+echo "options kvm_amd nested=1" | sudo tee /etc/modprobe.d/kvm-nested.conf
+sudo modprobe -r kvm_amd && sudo modprobe kvm_amd
+```
+
+Verify:
+
+```bash
+cat /sys/module/kvm_intel/parameters/nested   # should print Y or 1
+# or
+cat /sys/module/kvm_amd/parameters/nested
+```
+
+### 2. Create the guest VM with KVM passthrough
+
+When creating the guest VM (via virt-manager, virsh, or any tool), make sure the CPU mode passes through virtualization extensions:
+
+```bash
+# virt-manager: CPU → Configuration → Mode: host-passthrough
+# virsh XML: <cpu mode='host-passthrough'/>
+```
+
+### 3. Verify inside the guest
+
+```bash
+ls /dev/kvm          # must exist
+kvm-ok               # should print "KVM acceleration can be used"
+```
+
+If `/dev/kvm` does not exist:
+- Check host nested virt is enabled (step 1)
+- Check guest CPU mode is `host-passthrough`
+- Install `cpu-checker`: `sudo apt install cpu-checker && kvm-ok`
+
+### 4. Install Vagrant and libvirt inside the guest
+
+```bash
+sudo apt update
+sudo apt install -y vagrant libvirt-daemon-system libvirt-dev qemu-kvm rsync
+sudo usermod -aG libvirt $USER
+newgrp libvirt
+
+vagrant plugin install vagrant-libvirt
+```
+
+### 5. Run Part 1
+
+```bash
+cd p1
+vagrant up
+```
+
+Vagrant auto-detects libvirt (if vagrant-libvirt plugin is installed). VMs boot with KVM acceleration — same speed as on bare metal.
+
+If both VirtualBox and libvirt are installed, specify explicitly:
+
+```bash
+vagrant up --provider=libvirt
+```
+
+---
+
+## Setup: Vagrant Directly on Host (No Outer VM)
+
+If you run Vagrant on the host directly (no outer VM), nested virtualization is not needed.
+
+### Linux host with VirtualBox
+
+```bash
+sudo apt install -y virtualbox vagrant
+cd p1
+vagrant up
+```
+
+### Linux host with libvirt
+
+```bash
+sudo apt install -y vagrant libvirt-daemon-system libvirt-dev qemu-kvm
+vagrant plugin install vagrant-libvirt
+cd p1
+vagrant up --provider=libvirt
+```
+
+### macOS with VMware Fusion or Parallels
+
+```bash
 brew install hashicorp/tap/vagrant
-
-# VMware Fusion provider:
-vagrant plugin install vagrant-vmware-desktop
-
-# Or Parallels provider:
-vagrant plugin install vagrant-parallels
+vagrant plugin install vagrant-vmware-desktop   # or vagrant-parallels
+cd p1
+vagrant up --provider=vmware_desktop            # or --provider=parallels
 ```
-
-The Vagrantfile in `p1/` supports multiple providers. Use `--provider=vmware_desktop` or `--provider=parallels`.
-
-### Option 2: Use a Linux machine (42 school computers or any Intel PC)
-
-On an Intel Linux host or a 42 iMac:
-
-```bash
-vagrant up  # uses VirtualBox by default
-```
-
-If running inside a VM on a Linux host, ensure nested virtualization is enabled (see above).
-
-### Option 3: UTM Virtualize + enable Hypervisor (experimental)
-
-Some UTM versions expose a "Use Hypervisor" or "Enable Hypervisor" toggle:
-
-1. Shut down the VM completely
-2. UTM → VM Settings → System → look for Hypervisor option
-3. Enable it, start the VM
-4. Check: `ls /dev/kvm`
-
-If `/dev/kvm` appears, Vagrant + libvirt will work. This depends on UTM version and macOS version.
 
 ---
 
-## Summary
+## Vagrantfile Provider Support
 
-The difference between macOS and Linux is **not** about the guest OS — it's about what the **host hypervisor** passes through to the guest:
+The `p1/Vagrantfile` supports both VirtualBox and libvirt:
 
-- **KVM (Linux)**: passes hardware virtualization → nested VMs work
-- **Hypervisor.framework (macOS)**: does not pass it through → nested VMs fail
+| Provider | When used | Synced folder |
+|----------|-----------|---------------|
+| VirtualBox | Default on systems without vagrant-libvirt | rsync |
+| libvirt | Auto-selected when vagrant-libvirt plugin is installed | rsync |
 
-For Part 3 and Bonus, this is irrelevant because they use **k3d** (Docker containers, not VMs). Only Part 1 and Part 2 (Vagrant-based) are affected.
+The `rsync` synced folder type works with any provider. The provisioning scripts (`server.sh`, `worker.sh`) are provider-agnostic.
+
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `/dev/kvm` missing in guest | Enable nested virt on host + use `host-passthrough` CPU mode |
+| `vagrant up` uses wrong provider | `vagrant up --provider=libvirt` or `--provider=virtualbox` |
+| `Error: cannot load AppArmor profile` | `echo 'security_driver = "none"' \| sudo tee -a /etc/libvirt/qemu.conf && sudo systemctl restart libvirtd` |
+| Vagrant hangs at "Waiting for IP" | VM is booting without KVM (check `/dev/kvm`); with KVM it should take <60s |
+| `generic/ubuntu2204` box not found for libvirt | `vagrant box add generic/ubuntu2204 --provider=libvirt` |
+| rsync error | `sudo apt install rsync` inside host (not guest — rsync runs on the Vagrant host) |
+
+---
+
+## Related docs
+
+| Document | Content |
+|----------|---------|
+| [`vm-setup.md`](vm-setup.md) | VM setup for Part 3 + Bonus |
+| [`p1-checklist.md`](p1-checklist.md) | Part 1 verification commands |
+| [`p1-config-guide.md`](p1-config-guide.md) | Part 1 file-by-file explanation |

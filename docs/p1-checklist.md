@@ -1,6 +1,8 @@
 # Part 1 — Vagrant + K3s
 
-Runs on the **host** (VirtualBox + Vagrant), **not** inside the UTM defense VM. Two VMs: K3s server + agent.
+Two VMs: K3s server + agent. Runs with Vagrant + any supported provider (VirtualBox, libvirt/KVM, VMware, Parallels).
+
+On a Linux VM with nested virtualization enabled, use `vagrant-libvirt`. See [`p1-nested-virt.md`](p1-nested-virt.md) for setup.
 
 Edit `p1/Vagrantfile`: set `LOGIN`, check IPs `192.168.56.110` / `.111`, 1024 MB RAM, 1 CPU.
 
@@ -42,7 +44,8 @@ vagrant ssh adelaloySW -c "hostname; ip -4 addr show eth1; kubectl get nodes -o 
 |---------|-----|
 | TLS handshake timeout | `vagrant ssh adelaloyS -c "sudo systemctl restart k3s"` then retry |
 | Worker waiting for token | Check `p1/node-token` exists → `vagrant reload adelaloySW` |
-| Apple Silicon | Vagrantfile uses `bento/ubuntu-22.04` arm64 box automatically |
+| Apple Silicon (macOS host) | Vagrantfile uses `bento/ubuntu-22.04` arm64 box automatically |
+| Linux VM (nested virt) | Use libvirt provider; see `p1-nested-virt.md` |
 
 ## Cleanup
 

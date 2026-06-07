@@ -12,8 +12,8 @@ swapoff -a || true
 sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab || true
 
 if [[ ! -d /vagrant ]]; then
-  echo "[worker] ERROR: /vagrant not mounted (VirtualBox shared folder failed)." >&2
-  echo "[worker] Run: vagrant reload adelaloySW" >&2
+  echo "[worker] ERROR: /vagrant not mounted (synced folder failed)." >&2
+  echo "[worker] Run: vagrant reload ${HOSTNAME}" >&2
   exit 1
 fi
 

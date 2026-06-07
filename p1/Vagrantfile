@@ -7,26 +7,24 @@ WORKER_NAME = "#{LOGIN}SW"
 SERVER_IP = "192.168.56.110"
 WORKER_IP = "192.168.56.111"
 
-MAC_ARM64 = RUBY_PLATFORM.include?("darwin") &&
-            `sysctl -n hw.optional.arm64 2>/dev/null`.strip == "1"
-
 HAS_LIBVIRT = Vagrant.has_plugin?("vagrant-libvirt")
 
 if HAS_LIBVIRT
   BOX = "generic/ubuntu2204"
-  BOX_VERSION = nil
-elsif MAC_ARM64
-  BOX = "bento/ubuntu-22.04"
-  BOX_VERSION = "202502.21.0"
 else
-  BOX = "generic/ubuntu2204"
-  BOX_VERSION = nil
+  MAC_ARM64 = RUBY_PLATFORM.include?("darwin") &&
+              `sysctl -n hw.optional.arm64 2>/dev/null`.strip == "1"
+  BOX = MAC_ARM64 ? "bento/ubuntu-22.04" : "generic/ubuntu2204"
+  BOX_VERSION = MAC_ARM64 ? "202502.21.0" : nil
 end
 
 Vagrant.configure("2") do |config|
   config.vm.box = BOX
-  config.vm.box_version = BOX_VERSION if BOX_VERSION
-  config.vm.box_architecture = "arm64" if MAC_ARM64 && !HAS_LIBVIRT
+  config.vm.box_version = BOX_VERSION if defined?(BOX_VERSION) && BOX_VERSION
+
+  unless HAS_LIBVIRT
+    config.vm.box_architecture = "arm64" if defined?(MAC_ARM64) && MAC_ARM64
+  end
 
   config.vm.define SERVER_NAME do |server|
     server.vm.hostname = SERVER_NAME
@@ -41,16 +39,6 @@ Vagrant.configure("2") do |config|
     server.vm.provider "libvirt" do |v|
       v.memory = 1024
       v.cpus = 1
-      v.driver = "qemu"
-      v.machine_type = "virt"
-      v.machine_arch = "aarch64"
-      v.cpu_mode = "custom"
-      v.cpu_model = "cortex-a72"
-      v.loader = "/usr/share/AAVMF/AAVMF_CODE.fd"
-      v.nvram = "/usr/share/AAVMF/AAVMF_VARS.fd"
-      v.graphics_type = "none"
-      v.video_type = "none"
-      v.input :type => "mouse", :bus => "virtio"
     end
 
     server.vm.synced_folder ".", "/vagrant", type: "rsync"
@@ -70,16 +58,6 @@ Vagrant.configure("2") do |config|
     worker.vm.provider "libvirt" do |v|
       v.memory = 1024
       v.cpus = 1
-      v.driver = "qemu"
-      v.machine_type = "virt"
-      v.machine_arch = "aarch64"
-      v.cpu_mode = "custom"
-      v.cpu_model = "cortex-a72"
-      v.loader = "/usr/share/AAVMF/AAVMF_CODE.fd"
-      v.nvram = "/usr/share/AAVMF/AAVMF_VARS.fd"
-      v.graphics_type = "none"
-      v.video_type = "none"
-      v.input :type => "mouse", :bus => "virtio"
     end
 
     worker.vm.synced_folder ".", "/vagrant", type: "rsync"

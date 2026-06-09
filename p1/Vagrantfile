@@ -1,46 +1,66 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# Part 1 — subject: 2 VMs, Vagrant + VirtualBox, K3s server + agent.
 LOGIN = "adelaloy"
 SERVER_NAME = "#{LOGIN}S"
 WORKER_NAME = "#{LOGIN}SW"
 SERVER_IP = "192.168.56.110"
 WORKER_IP = "192.168.56.111"
 
-# Apple Silicon: VirtualBox runs arm64 guests only; generic/ubuntu2204 is amd64-only.
-# Use hw.optional.arm64 — uname -m is x86_64 when Vagrant/Terminal runs under Rosetta.
-MAC_ARM64 = RUBY_PLATFORM.include?("darwin") &&
-            `sysctl -n hw.optional.arm64 2>/dev/null`.strip == "1"
-BOX = MAC_ARM64 ? "bento/ubuntu-22.04" : "generic/ubuntu2204"
-BOX_VERSION = MAC_ARM64 ? "202502.21.0" : nil
+HAS_LIBVIRT = Vagrant.has_plugin?("vagrant-libvirt")
+
+if HAS_LIBVIRT
+  BOX = "generic/ubuntu2204"
+else
+  MAC_ARM64 = RUBY_PLATFORM.include?("darwin") &&
+              `sysctl -n hw.optional.arm64 2>/dev/null`.strip == "1"
+  BOX = MAC_ARM64 ? "bento/ubuntu-22.04" : "generic/ubuntu2204"
+  BOX_VERSION = MAC_ARM64 ? "202502.21.0" : nil
+end
 
 Vagrant.configure("2") do |config|
   config.vm.box = BOX
-  config.vm.box_version = BOX_VERSION if BOX_VERSION
-  config.vm.box_architecture = "arm64" if MAC_ARM64
+  config.vm.box_version = BOX_VERSION if defined?(BOX_VERSION) && BOX_VERSION
+
+  unless HAS_LIBVIRT
+    config.vm.box_architecture = "arm64" if defined?(MAC_ARM64) && MAC_ARM64
+  end
 
   config.vm.define SERVER_NAME do |server|
     server.vm.hostname = SERVER_NAME
     server.vm.network "private_network", ip: SERVER_IP
+
     server.vm.provider "virtualbox" do |v|
       v.customize ["modifyvm", :id, "--name", SERVER_NAME]
       v.memory = 1024
       v.cpus = 1
     end
-    server.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+
+    server.vm.provider "libvirt" do |v|
+      v.memory = 1024
+      v.cpus = 1
+    end
+
+    server.vm.synced_folder ".", "/vagrant", type: "rsync"
     server.vm.provision "shell", path: "scripts/server.sh", args: [SERVER_IP]
   end
 
   config.vm.define WORKER_NAME do |worker|
     worker.vm.hostname = WORKER_NAME
     worker.vm.network "private_network", ip: WORKER_IP
+
     worker.vm.provider "virtualbox" do |v|
       v.customize ["modifyvm", :id, "--name", WORKER_NAME]
       v.memory = 1024
       v.cpus = 1
     end
-    worker.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+
+    worker.vm.provider "libvirt" do |v|
+      v.memory = 1024
+      v.cpus = 1
+    end
+
+    worker.vm.synced_folder ".", "/vagrant", type: "rsync"
     worker.vm.provision "shell", path: "scripts/worker.sh", args: [SERVER_IP, WORKER_IP]
   end
 end

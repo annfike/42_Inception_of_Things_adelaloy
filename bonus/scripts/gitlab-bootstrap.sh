@@ -4,14 +4,31 @@ set -euo pipefail
 GITLAB_NS="${GITLAB_NS:-gitlab}"
 
 info() { echo ">>> $1"; }
+warn() { echo ">>> $1"; }
+
+gitlab_diagnose() {
+  warn "GitLab status:"
+  kubectl get pods -n "$GITLAB_NS" -l app=gitlab -o wide 2>/dev/null || true
+  kubectl describe pod -n "$GITLAB_NS" -l app=gitlab 2>/dev/null | tail -30 || true
+  kubectl logs -n "$GITLAB_NS" deployment/gitlab --tail=40 2>/dev/null || true
+}
 
 wait_gitlab() {
-  info "Waiting for GitLab pod..."
-  for _ in $(seq 1 120); do
-    if kubectl get pods -n "$GITLAB_NS" -l app=gitlab -o jsonpath='{.items[0].status.phase}' 2>/dev/null | grep -q Running; then
+  info "Waiting for GitLab (health + rake; often 10-20 min after pod starts)..."
+  local i=0
+  while [ "$i" -lt 180 ]; do
+    local phase ready
+    phase=$(kubectl get pods -n "$GITLAB_NS" -l app=gitlab -o jsonpath='{.items[0].status.phase}' 2>/dev/null || true)
+    ready=$(kubectl get pods -n "$GITLAB_NS" -l app=gitlab -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)
+    if [ "$phase" = "Running" ] && [ "$ready" = "True" ]; then
       if kubectl exec -n "$GITLAB_NS" deployment/gitlab -- gitlab-rake db:migrate:status >/dev/null 2>&1; then
+        info "GitLab is ready."
         return 0
       fi
+    fi
+    i=$((i + 1))
+    if [ $((i % 6)) -eq 0 ]; then
+      info "Still waiting... (${i}/180, ~$((i * 10 / 60)) min) phase=${phase:-?} ready=${ready:-?}"
     fi
     sleep 10
   done
@@ -51,7 +68,11 @@ RUBY
 }
 
 main() {
-  wait_gitlab || { echo "GitLab not ready"; exit 1; }
+  wait_gitlab || {
+    echo "GitLab not ready"
+    gitlab_diagnose
+    exit 1
+  }
   seed_if_empty
   fix_root
   info "Login: root / password123"

@@ -13,13 +13,62 @@ NC='\033[0m'
 info() { echo -e "${GREEN}>>> $1${NC}"; }
 warn() { echo -e "${YELLOW}>>> $1${NC}"; }
 
-install_prerequisites() {
-  if ! command -v docker &>/dev/null; then
+install_binfmt() {
+  if [ "$(uname -m)" != "x86_64" ]; then
+    info "ARM host detected — installing amd64 binfmt emulation..."
+    docker run --privileged --rm tonistiigi/binfmt --install amd64
+  fi
+}
+
+install_docker() {
+  if command -v docker &>/dev/null; then
+    info "Docker is already installed: $(docker --version)"
+  else
     info "Installing Docker..."
     curl -fsSL https://get.docker.com | sh
-    sudo usermod -aG docker "$USER"
     sudo systemctl enable --now docker
+    info "Docker installed: $(docker --version)"
   fi
+  if getent group docker &>/dev/null && ! id -nG "$USER" | grep -qw docker; then
+    info "Adding $USER to the docker group..."
+    sudo usermod -aG docker "$USER"
+  fi
+}
+
+ensure_docker_access() {
+  if docker ps &>/dev/null; then
+    return
+  fi
+  if [ -n "${IOT_DOCKER_SG:-}" ]; then
+    warn "Cannot access Docker (permission denied on /var/run/docker.sock)."
+    warn "Log out and log back in, then run: bash scripts/setup.sh"
+    exit 1
+  fi
+  if ! getent group docker &>/dev/null; then
+    warn "Docker group missing. Install Docker first."
+    exit 1
+  fi
+  if ! id -nG "$USER" | grep -qw docker; then
+    info "Adding $USER to the docker group..."
+    sudo usermod -aG docker "$USER"
+  fi
+  local script_dir script_path inner
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  script_path="${script_dir}/$(basename "${BASH_SOURCE[0]}")"
+  export IOT_DOCKER_SG=1
+  inner="cd $(printf '%q' "$PWD") && export PATH=$(printf '%q' "$PATH") HOME=$(printf '%q' "$HOME") && export IOT_DOCKER_SG=1 && bash $(printf '%q' "$script_path")"
+  if command -v sg &>/dev/null; then
+    info "Activating docker group for this setup run (sg)..."
+    exec sg docker -c "$inner"
+  fi
+  info "Activating docker group for this setup run (sudo)..."
+  exec sudo -g docker -u "$USER" env PATH="$PATH" HOME="$HOME" IOT_DOCKER_SG=1 bash "$script_path"
+}
+
+install_prerequisites() {
+  install_docker
+  ensure_docker_access
+  install_binfmt
   info "Docker: $(docker --version)"
 
   if ! command -v k3d &>/dev/null; then
@@ -37,8 +86,12 @@ install_prerequisites() {
       aarch64|arm64) arch="arm64" ;;
     esac
     os=$(uname -s | tr '[:upper:]' '[:lower:]')
-    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/${os}/${arch}/kubectl"
-    chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+    local bindir="${HOME}/.local/bin"
+    mkdir -p "$bindir"
+    curl -fsSL "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/${os}/${arch}/kubectl" \
+      -o "$bindir/kubectl"
+    chmod +x "$bindir/kubectl"
+    export PATH="$bindir:$PATH"
   fi
   info "kubectl: $(kubectl version --client --short 2>/dev/null || echo installed)"
 

@@ -78,6 +78,7 @@ p3/
 
 ## Prerequisites
 
+- Defense on a **Linux VM** (macOS host): see [`docs/vm-setup.md`](../docs/vm-setup.md)
 - **Docker** (Docker Desktop or Docker Engine)
 - Internet access (to pull images and clone repos)
 - Public GitHub repository: https://github.com/annfike/42_Inception_of_Things_adelaloy.git

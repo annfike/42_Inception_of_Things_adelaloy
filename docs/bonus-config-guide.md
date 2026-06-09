@@ -140,7 +140,7 @@ Creates **`argocd`**, **`dev`**, and **`gitlab`** (Bonus adds GitLab namespace v
 
 ### `install_gitlab()`
 
-Applies `bonus/confs/gitlab.yaml`, waits up to 600s for `deployment/gitlab` Available, then runs **`gitlab-bootstrap.sh`** (root account fix). Lists GitLab pods.
+Applies `bonus/confs/gitlab.yaml`, waits up to **1800s** for `deployment/gitlab` Available (readiness on `/-/health`; first boot often **15–25 min**), then runs **`gitlab-bootstrap.sh`**. If bootstrap fails, setup continues with a warning — re-run bootstrap when the pod is Ready. Lists GitLab pods.
 
 ### `install_argocd()`
 
@@ -170,7 +170,7 @@ Recovery script when GitLab’s first boot fails to create a usable `root` user 
 
 ### `wait_gitlab()`
 
-Up to 120 × 10s: pod `Running` and `gitlab-rake db:migrate:status` succeeds inside the container.
+Up to **180 × 10s** (~30 min): pod phase `Running`, Ready condition `True`, and `gitlab-rake db:migrate:status` succeeds. Prints progress every minute. On failure, prints pod describe and logs.
 
 ### `seed_if_empty()`
 
@@ -218,13 +218,14 @@ Multi-document manifest (four resources separated by `---`).
 
 | Area | Detail |
 |------|--------|
-| Image | `gitlab/gitlab-ce:17.5.4-ce.0` (pinned CE; stable for defense; subject mentions latest) |
+| Image | `gitlab/gitlab-ce:latest` (official CE; subject requirement) |
 | `GITLAB_OMNIBUS_CONFIG` | `external_url` = in-cluster HTTP URL Argo CD and git use |
 | | `initial_root_password` = `password123` (first clean install only) |
 | | HTTP on port 80, HTTPS disabled for simplicity |
-| | Prometheus, KAS, Grafana off — lower memory |
+| | Prometheus and KAS off — lower memory (no `grafana` key on latest CE) |
 | | `sidekiq` concurrency 3, `puma` 1 worker, smaller PostgreSQL buffers |
 | Resources | requests 2Gi / 1 CPU; limits 4Gi / 2 CPU |
+| `readinessProbe` | HTTP `/-/health` on port 80 — deployment Available only when GitLab responds |
 | Volume | `/var/opt/gitlab` on PVC |
 
 ### Service `gitlab` (ClusterIP)

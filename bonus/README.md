@@ -46,8 +46,8 @@ K3d creates **one** cluster (`iot-bonus`) in Docker. GitLab, Argo CD, and the ap
 
 ### GitLab Configuration
 The GitLab instance is configured with reduced resource usage to run in a development cluster:
-- Image: `gitlab/gitlab-ce:17.5.4-ce.0` (pinned CE; subject allows latest, pin avoids drift)
-- Prometheus, KAS, and Grafana disabled
+- Image: `gitlab/gitlab-ce:latest` (official CE on Docker Hub)
+- Prometheus and KAS disabled (Grafana removed upstream in recent CE; do not set `grafana['enable']`)
 - Sidekiq limited to 3 concurrent jobs
 - PostgreSQL shared buffers reduced to 128MB
 - Puma limited to 1 worker process
@@ -72,6 +72,7 @@ See [`docs/bonus-config-guide.md`](../docs/bonus-config-guide.md) (§ *Pods in t
 
 ## Prerequisites
 
+- Defense on a **Linux VM** (macOS host): see [`docs/vm-setup.md`](../docs/vm-setup.md)
 - **Docker** (Docker Desktop or Docker Engine)
 - At least **8 GB RAM** available (GitLab is memory-intensive)
 - Internet access (to pull Docker images)
@@ -89,8 +90,8 @@ The script installs:
 1. Docker, K3d, kubectl, Helm (if not present)
 2. Creates a K3d cluster with port mappings
 3. Creates `argocd`, `dev`, and `gitlab` namespaces
-4. Deploys GitLab CE in the `gitlab` namespace
-5. Runs `gitlab-bootstrap.sh` (root account + `password123`)
+4. Deploys GitLab CE in the `gitlab` namespace (first boot often **15–25 minutes**)
+5. Runs `gitlab-bootstrap.sh` (root account + `password123`; re-run if `GitLab not ready`)
 6. Installs Argo CD in the `argocd` namespace
 7. Prints access information
 
@@ -271,7 +272,6 @@ The `gitlab.yaml` creates:
 ```
 prometheus_monitoring['enable'] = false
 gitlab_kas['enable'] = false
-grafana['enable'] = false
 sidekiq['max_concurrency'] = 3
 postgresql['shared_buffers'] = "128MB"
 puma['worker_processes'] = 1

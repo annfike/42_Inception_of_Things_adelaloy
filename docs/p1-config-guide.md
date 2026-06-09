@@ -22,19 +22,19 @@ Part 1 is **not** “Kubernetes inside one VM”. You have **two separate virtua
 
 | What you get | What it is |
 |--------------|------------|
-| **VM `adelaloyS`** | VirtualBox VM — K3s **server** (control-plane + etcd + API) |
-| **VM `adelaloySW`** | VirtualBox VM — K3s **agent** (worker node, runs pods) |
+| **VM `adelaloyS`** | K3s **server** (control-plane + etcd + API) |
+| **VM `adelaloySW`** | K3s **agent** (worker node, runs pods) |
 | **One cluster** | Worker joins server; `kubectl get nodes` shows **both** as Kubernetes nodes |
-| **`/vagrant`** | Shared project folder (host `p1/` ↔ guest `/vagrant`) for join token |
+| **`/vagrant`** | Synced project folder (host `p1/` ↔ guest `/vagrant`) for join token |
 
 ```
-Host (Windows / Mac / Linux)
- ├── VirtualBox
- │    ├── adelaloyS   192.168.56.110   NAT (SSH) + host-only
+Host or VM (Linux / Mac / Windows)
+ ├── Vagrant + provider (libvirt or VirtualBox)
+ │    ├── adelaloyS   192.168.56.110   management + private network
  │    │    └── k3s server (control-plane)
- │    └── adelaloySW  192.168.56.111   NAT (SSH) + host-only
+ │    └── adelaloySW  192.168.56.111   management + private network
  │         └── k3s agent (worker)
- └── p1/node-token, p1/kubeconfig   (written by server, read by worker)
+ └── p1/node-token, p1/kubeconfig   (written by server, read by worker via rsync)
 ```
 
 ### Network interfaces per VM
@@ -66,7 +66,7 @@ K3s is bound to the **host-only** IP (`--bind-address`, `--node-ip`, `--flannel-
 
 ### Purpose
 
-Single definition of both VMs: box image, hostname, static IP, VirtualBox resources, shared folder, and which shell script runs on first boot.
+Single definition of both VMs: box image, hostname, static IP, provider resources (VirtualBox or libvirt), synced folder, and which shell script runs on first boot.
 
 ### Constants
 
@@ -78,16 +78,17 @@ Single definition of both VMs: box image, hostname, static IP, VirtualBox resour
 | `SERVER_IP` | `192.168.56.110` | Subject server IP |
 | `WORKER_IP` | `192.168.56.111` | Subject worker IP |
 
-### Apple Silicon (`MAC_ARM64`)
+### Provider detection
 
-On **M-series Mac**, VirtualBox cannot run amd64 `generic/ubuntu2204`. The file auto-selects:
+The Vagrantfile supports multiple providers and auto-selects the box:
 
-| Platform | Box |
-|----------|-----|
-| Apple Silicon | `bento/ubuntu-22.04` (arm64), pinned version |
-| Windows / Intel / Linux | `generic/ubuntu2204` (amd64) |
+| Environment | Provider | Box |
+|-------------|----------|-----|
+| Linux with `vagrant-libvirt` | libvirt/KVM | `generic/ubuntu2204` |
+| macOS Apple Silicon (no libvirt) | VirtualBox | `bento/ubuntu-22.04` (arm64) |
+| Intel (Linux/Mac/Windows) | VirtualBox | `generic/ubuntu2204` (amd64) |
 
-Requires VirtualBox **7.1+** and Vagrant **ARM64** build on Mac.
+On a Linux VM with nested virtualization, install `vagrant-libvirt` plugin and Vagrant will auto-detect it.
 
 ### Per-VM blocks
 
@@ -95,14 +96,14 @@ Both `adelaloyS` and `adelaloySW` define:
 
 | Setting | Value | Meaning |
 |---------|-------|---------|
-| `private_network, ip:` | `.110` / `.111` | Host-only static IP (subject) |
-| `vb.memory` | `1024` | 1 GB RAM |
-| `vb.cpus` | `1` | 1 vCPU |
-| `synced_folder ".", "/vagrant"` | virtualbox | Whole `p1/` visible in guest as `/vagrant` |
+| `private_network, ip:` | `.110` / `.111` | Static IP (subject requirement) |
+| `memory` | `1024` | 1 GB RAM (both providers) |
+| `cpus` | `1` | 1 vCPU (both providers) |
+| `synced_folder ".", "/vagrant"` | rsync | Whole `p1/` visible in guest as `/vagrant` |
 | `provision "shell"` | `server.sh` / `worker.sh` | Run once on `vagrant up` / `provision` |
 | `args` | `[SERVER_IP]` or `[SERVER_IP, WORKER_IP]` | IPs passed into bash scripts |
 
-`v.customize ["modifyvm", :id, "--name", SERVER_NAME]` sets the VirtualBox GUI name to `adelaloyS` / `adelaloySW`.
+VirtualBox block also sets `v.customize ["modifyvm", :id, "--name", ...]` for the GUI name.
 
 ### What this file does *not* do
 
@@ -184,7 +185,7 @@ Provision **adelaloySW**: join existing cluster as K3s **agent**, configure `kub
 
 ### `/vagrant` check
 
-Fails fast if VirtualBox shared folder is not mounted (common on Windows after interrupted `vagrant up`). Fix: `vagrant reload adelaloySW`.
+Fails fast if synced folder is not mounted (common after interrupted `vagrant up`). Fix: `vagrant reload adelaloySW`.
 
 ### Wait for token
 
@@ -212,8 +213,8 @@ After success, `kubectl get nodes` on either VM should show **2 Ready** nodes.
 
 ```
 1. server.sh  →  cp node-token → /vagrant/node-token
-2. VirtualBox shared folder  →  same file on host (p1/node-token)
-3. worker VM mounts /vagrant  →  worker.sh reads node-token
+2. rsync synced folder  →  same file on host (p1/node-token)
+3. worker VM syncs /vagrant  →  worker.sh reads node-token
 4. worker.sh  →  k3s agent --token ... --server https://192.168.56.110:6443
 5. Server API validates token  →  worker appears in kubectl get nodes
 ```

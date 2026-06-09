@@ -14,7 +14,9 @@ For Part 3 and Bonus commands after the VM is ready, see [`p3-checklist.md`](p3-
 | **Linux VM** | Defense machine — Docker, k3d, scripts, optional editor |
 | **k3d cluster** | Created inside the VM by `p3/scripts/setup.sh` or `bonus/scripts/setup.sh` |
 
-Part 1–2 (Vagrant + two small VMs) need **nested virtualization** and are difficult on Apple Silicon. This document focuses on **Part 3 + Bonus** inside a Linux guest.
+Part 1–2 (Vagrant + two small VMs) need **nested virtualization**. This works on **Linux hosts** (KVM supports nested virt) but **not on macOS/Apple Silicon** (Hypervisor.framework does not). See [`p1-nested-virt.md`](p1-nested-virt.md) for details and alternatives.
+
+This document focuses on **Part 3 + Bonus** inside a Linux guest (no Vagrant needed).
 
 The demo app image `wil42/playground` is **linux/amd64**. On an **ARM** guest (UTM **Virtualize**), pods often crash with `exec format error` unless you install binfmt emulation. The simpler defense path on Apple Silicon is **UTM Emulate** + **Ubuntu amd64** (slower VM, no extra steps).
 

@@ -136,12 +136,31 @@ Say aloud:
 
 | Symptom | Fix |
 |---------|-----|
+| `ServiceUnavailable` during `waiting for deployment/app-one` | API overloaded on 1024 MB — apps may already exist; restart k3s + `vagrant provision` (see below) |
 | `ingress.yaml`: `http2: client connection lost` | Apps created, Ingress failed — API overloaded on 1024 MB RAM (see below) |
 | Traefik not Running | Wait up to 10 min; `kubectl get pods -n kube-system -w` |
+| `Unhandled Error` / API flaky | Normal on 1024 MB nested VM — wait or `sudo systemctl restart k3s`, retry after 60s |
 | Apps ImagePullBackOff | Check internet in VM |
 | curl returns 404 | Traefik not ready or Ingress missing — `kubectl get ingress` |
 | Conflict with p1 | `cd p1 && vagrant destroy -f` then retry p2 |
 | Provision timeout | Re-run `vagrant provision` |
+
+### API unavailable during deployment wait
+
+Manifests may already be applied. From `p2/`:
+
+```bash
+vagrant ssh adelaloyS -c "sudo systemctl restart k3s"
+sleep 60
+vagrant ssh adelaloyS -c "kubectl get pods --request-timeout=120s"
+cd p2 && vagrant provision
+```
+
+If pods are **Running** but provision keeps failing, apply Ingress manually:
+
+```bash
+vagrant ssh adelaloyS -c "kubectl apply -f /vagrant/confs/ingress.yaml --request-timeout=120s"
+```
 
 ### Ingress apply failed (`client connection lost`)
 

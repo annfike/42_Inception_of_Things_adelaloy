@@ -7,26 +7,46 @@ flannel_iface() {
   ip -o -4 addr show | awk -v ip="$1" '$4 ~ "^" ip "/" {gsub(/:$/, "", $2); print $2; exit}'
 }
 
+kubectl_cmd() {
+  k3s kubectl "$@" --request-timeout=120s 2>/dev/null
+}
+
+wait_api() {
+  local i
+  for i in $(seq 1 60); do
+    if kubectl_cmd get nodes | grep -q Ready; then
+      return 0
+    fi
+    sleep 5
+  done
+  return 1
+}
+
 wait_deployment() {
   local name="$1"
   local replicas="$2"
-  local timeout="${3:-600}"
+  local timeout="${3:-900}"
   local elapsed=0
   local ready
 
   echo ">>> [Server] Waiting for deployment/${name} (${replicas} ready)..."
   while [ "${elapsed}" -lt "${timeout}" ]; do
-    ready="$(kubectl get deployment "${name}" -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")"
+    if ! ready="$(kubectl_cmd get deployment "${name}" -o jsonpath='{.status.readyReplicas}')"; then
+      echo ">>> [Server] API busy, waiting 30s..."
+      sleep 30
+      elapsed=$((elapsed + 30))
+      continue
+    fi
     ready="${ready:-0}"
     if [ "${ready}" = "${replicas}" ]; then
       echo ">>> [Server] deployment/${name} ready"
       return 0
     fi
-    sleep 10
-    elapsed=$((elapsed + 10))
+    sleep 15
+    elapsed=$((elapsed + 15))
   done
-  kubectl get pods -o wide
-  kubectl describe deployment "${name}" | tail -15
+  kubectl_cmd get pods -o wide || true
+  kubectl_cmd describe deployment "${name}" | tail -15 || true
   return 1
 }
 
@@ -34,13 +54,13 @@ kubectl_apply_retry() {
   local target="$1"
   local attempt
   for attempt in $(seq 1 12); do
-    if kubectl apply -f "${target}" --request-timeout=120s 2>/dev/null; then
+    if k3s kubectl apply -f "${target}" --request-timeout=120s 2>/dev/null; then
       return 0
     fi
     echo ">>> [Server] API unavailable, retry ${attempt}/12..."
     systemctl restart k3s
-    sleep 30
-    until kubectl get nodes 2>/dev/null | grep -q Ready; do sleep 5; done
+    sleep 45
+    wait_api || true
   done
   return 1
 }
@@ -70,30 +90,31 @@ else
 fi
 
 echo ">>> [Server] Waiting for K3s to be ready..."
-until kubectl get nodes 2>/dev/null | grep -q Ready; do
-  sleep 5
-done
-sleep 15
+wait_api
+sleep 20
 
 echo ">>> [Server] Waiting for Traefik (up to 10 min on 1024 MB RAM)..."
 for i in $(seq 1 120); do
-  if kubectl get pods -n kube-system -l app.kubernetes.io/name=traefik 2>/dev/null | awk 'NR>1 && $3=="Running" {found=1} END {exit !found}'; then
+  if kubectl_cmd get pods -n kube-system -l app.kubernetes.io/name=traefik | awk 'NR>1 && $3=="Running" {found=1} END {exit !found}'; then
     echo ">>> [Server] Traefik is Running"
     break
   fi
   sleep 5
 done
 
-echo ">>> [Server] Applying app manifests..."
+echo ">>> [Server] Applying app-one..."
 kubectl_apply_retry /vagrant/confs/app-one.yaml
-kubectl_apply_retry /vagrant/confs/app-two.yaml
-kubectl_apply_retry /vagrant/confs/app-three.yaml
-
 wait_deployment app-one 1
+
+echo ">>> [Server] Applying app-two..."
+kubectl_apply_retry /vagrant/confs/app-two.yaml
 wait_deployment app-two 3
+
+echo ">>> [Server] Applying app-three..."
+kubectl_apply_retry /vagrant/confs/app-three.yaml
 wait_deployment app-three 1
 
-echo ">>> [Server] Applying Ingress (API may need retries on 1024 MB RAM)..."
+echo ">>> [Server] Applying Ingress..."
 kubectl_apply_retry /vagrant/confs/ingress.yaml
 
 mkdir -p /home/vagrant/.kube
@@ -101,8 +122,9 @@ sed "s|https://127.0.0.1:6443|https://${SERVER_IP}:6443|" \
   /etc/rancher/k3s/k3s.yaml > /home/vagrant/.kube/config
 chown -R vagrant:vagrant /home/vagrant/.kube
 chmod 600 /home/vagrant/.kube/config
+ln -sf /usr/local/bin/k3s /usr/bin/kubectl
 grep -q 'alias k=' /home/vagrant/.bashrc 2>/dev/null || echo 'alias k="kubectl"' >> /home/vagrant/.bashrc
 
 echo ">>> [Server] Setup complete. Current state:"
-kubectl get all
-kubectl get ingress
+kubectl_cmd get all || true
+kubectl_cmd get ingress || true

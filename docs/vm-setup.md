@@ -174,10 +174,15 @@ sudo apt install -y virtualbox-guest-utils virtualbox-guest-x11
 sudo reboot
 ```
 
-If apt packages are missing or clipboard still fails, use the ISO from the host instead (VM running):
+If apt packages are missing or clipboard still fails, attach Guest Additions ISO from the **host terminal** (no Devices menu needed):
 
-1. **Devices → Insert Guest Additions CD image**
-2. Inside the guest:
+```bash
+VM="iot"
+ISO=$(find /usr/share/virtualbox /opt/VirtualBox -name VBoxGuestAdditions.iso 2>/dev/null | head -1)
+VBoxManage storageattach "$VM" --storagectl "IDE" --port 0 --device 0 --type dvddrive --medium "$ISO"
+```
+
+Inside the guest:
 
 ```bash
 sudo mount /dev/cdrom /mnt
@@ -185,10 +190,11 @@ sudo /mnt/VBoxLinuxAdditions.run
 sudo reboot
 ```
 
-On the **host** (with the VM running or stopped):
+Enable clipboard on the **host** (VM can be stopped):
 
-- **Settings → General → Advanced → Shared Clipboard:** **Bidirectional**
-- Or **Devices → Shared Clipboard → Bidirectional**
+- Select VM → **Settings → General → Advanced → Shared Clipboard:** **Bidirectional**
+
+On some VirtualBox builds the menu is **Machine → removable media** or a **CD icon** in the VM window status bar — not **Devices**.
 
 After reboot, copy on the host (`Ctrl+C`) and paste in the guest terminal (`Ctrl+Shift+V` in GNOME Terminal, or right-click → Paste).
 

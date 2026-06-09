@@ -1,0 +1,30 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Part 2 — subject: 1 VM, K3s server, 3 apps + Ingress (Host-based routing).
+LOGIN = "adelaloy"
+SERVER_NAME = "#{LOGIN}S"
+SERVER_IP = "192.168.56.110"
+
+MAC_ARM64 = RUBY_PLATFORM.include?("darwin") &&
+            `sysctl -n hw.optional.arm64 2>/dev/null`.strip == "1"
+BOX = MAC_ARM64 ? "bento/ubuntu-22.04" : "generic/ubuntu2204"
+BOX_VERSION = MAC_ARM64 ? "202502.21.0" : nil
+
+Vagrant.configure("2") do |config|
+  config.vm.box = BOX
+  config.vm.box_version = BOX_VERSION if BOX_VERSION
+  config.vm.box_architecture = "arm64" if MAC_ARM64
+
+  config.vm.define SERVER_NAME do |server|
+    server.vm.hostname = SERVER_NAME
+    server.vm.network "private_network", ip: SERVER_IP
+    server.vm.provider "virtualbox" do |v|
+      v.customize ["modifyvm", :id, "--name", SERVER_NAME]
+      v.memory = 1024
+      v.cpus = 1
+    end
+    server.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+    server.vm.provision "shell", path: "scripts/server.sh", args: [SERVER_IP]
+  end
+end

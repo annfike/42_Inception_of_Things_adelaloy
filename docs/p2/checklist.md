@@ -132,6 +132,42 @@ Say aloud:
 2. Three Deployments with 1, 3, and 1 replicas
 3. Ingress routes by `Host` header; default → app3
 
+## 5) Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| `ingress.yaml`: `http2: client connection lost` | Apps created, Ingress failed — API overloaded on 1024 MB RAM (see below) |
+| Traefik not Running | Wait up to 10 min; `kubectl get pods -n kube-system -w` |
+| Apps ImagePullBackOff | Check internet in VM |
+| curl returns 404 | Traefik not ready or Ingress missing — `kubectl get ingress` |
+| Conflict with p1 | `cd p1 && vagrant destroy -f` then retry p2 |
+| Provision timeout | Re-run `vagrant provision` |
+
+### Ingress apply failed (`client connection lost`)
+
+Apps and Services may already exist; only Ingress failed. From `p2/`:
+
+```bash
+vagrant ssh adelaloyS -c "sudo systemctl restart k3s"
+sleep 45
+vagrant ssh adelaloyS -c "kubectl apply -f /vagrant/confs/ingress.yaml --request-timeout=120s"
+vagrant ssh adelaloyS -c "kubectl get ingress"
+```
+
+If it fails again, wait 1 min and retry `kubectl apply`. Or:
+
+```bash
+cd p2 && vagrant provision
+```
+
+Then verify routing:
+
+```bash
+vagrant ssh adelaloyS -c "curl -s -H 'Host: app1.com' http://192.168.56.110"
+vagrant ssh adelaloyS -c "curl -s -H 'Host: app2.com' http://192.168.56.110"
+vagrant ssh adelaloyS -c "curl -s http://192.168.56.110"
+```
+
 ## 6) Cleanup
 
 ```bash

@@ -46,7 +46,7 @@ Part 3 sets up a lightweight Kubernetes cluster using **K3d** (K3s running insid
 
 ### One cluster, not separate VMs
 
-K3d creates **one** Kubernetes cluster in Docker (1 control-plane node + 2 agents). Argo CD and the app are **not** on different virtual machines — they run as pods in the **same** cluster, in different **namespaces** (`argocd` vs `dev`). GitHub stays **outside** the cluster; Argo CD pulls manifests from there. **Nodes** and **pods**: [`docs/p3-config-guide.md`](../docs/p3-config-guide.md) § *Nodes in the cluster*, *Pods in the cluster*, *Docker Desktop*.
+K3d creates **one** Kubernetes cluster in Docker (1 control-plane node + 2 agents). Argo CD and the app are **not** on different virtual machines — they run as pods in the **same** cluster, in different **namespaces** (`argocd` vs `dev`). GitHub stays **outside** the cluster; Argo CD pulls manifests from there. **Nodes** and **pods**: [`docs/p3/config-guide.md`](../docs/p3/config-guide.md) § *Nodes in the cluster*, *Pods in the cluster*, *Docker Desktop*.
 
 ### Namespaces
 | Namespace | Purpose |
@@ -56,7 +56,7 @@ K3d creates **one** Kubernetes cluster in Docker (1 control-plane node + 2 agent
 
 ### Argo CD and app pods
 
-See [`docs/p3-config-guide.md`](../docs/p3-config-guide.md) § *Pods in the cluster* for each pod prefix (`argocd-server`, `argocd-repo-server`, `wil-playground`, etc.).
+See [`docs/p3/config-guide.md`](../docs/p3/config-guide.md) § *Pods in the cluster* for each pod prefix (`argocd-server`, `argocd-repo-server`, `wil-playground`, etc.).
 
 ### Application: wil42/playground
 - Docker image: `wil42/playground` (Docker Hub)
@@ -78,7 +78,7 @@ p3/
 
 ## Prerequisites
 
-- Defense on a **Linux VM** (macOS host): see [`docs/vm-setup.md`](../docs/vm-setup.md)
+- Defense on a **Linux VM** (macOS host): see [`docs/setup/vm-setup.md`](../docs/setup/vm-setup.md)
 - **Docker** (Docker Desktop or Docker Engine)
 - Internet access (to pull images and clone repos)
 - Public GitHub repository: https://github.com/annfike/42_Inception_of_Things_adelaloy.git

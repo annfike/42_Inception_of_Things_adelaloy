@@ -14,7 +14,7 @@
 ├── p2/                 # Part 2 — 1 VM, K3s + 3 apps + Ingress (Vagrant)
 ├── p3/                 # Part 3 — K3d + Argo CD + public GitHub (Docker)
 ├── bonus/              # Bonus — K3d + Argo CD + GitLab in cluster (Docker)
-└── docs/               # Checklists, VM setup, config guides
+└── docs/               # Index: docs/README.md (p1–bonus + setup/)
 ```
 
 | Part | Stack | What it demonstrates |
@@ -72,7 +72,7 @@ cd bonus
 bash scripts/setup.sh
 ```
 
-Then create GitLab project `playground`, push manifests — see [`docs/bonus-checklist.md`](docs/bonus-checklist.md).
+Then create GitLab project `playground`, push manifests — see [`docs/bonus/checklist.md`](docs/bonus/checklist.md).
 
 ---
 
@@ -86,32 +86,35 @@ The subject expects work **in a virtual machine**. Actual setup depends on your 
 | **Apple Silicon Mac** | Vagrant on **macOS host** (no nested virt on M1/M2) | Linux VM (UTM) or macOS + Docker |
 | **Apple M3+ Mac** | Nested virt possible in Linux VM | Same VM |
 
-Details:
-- School computer: [`docs/school-defense.md`](docs/school-defense.md)
-- MacBook + UTM: [`docs/vm-setup.md`](docs/vm-setup.md)
-- Nested virtualization (p1 in a Linux VM): [`docs/p1-nested-virt.md`](docs/p1-nested-virt.md)
+Details: [`docs/README.md`](docs/README.md) — full index.
+
+- School computer: [`docs/setup/school-defense.md`](docs/setup/school-defense.md)
+- MacBook + UTM: [`docs/setup/vm-setup.md`](docs/setup/vm-setup.md)
+- Nested virtualization (p1/p2 in a Linux VM): [`docs/setup/p1-nested-virt.md`](docs/setup/p1-nested-virt.md)
 
 ---
 
 ## Documentation
 
+See [`docs/README.md`](docs/README.md) for the full tree. Summary:
+
 ### Checklists (setup + verification)
 
 | Doc | Part |
 |-----|------|
-| [`docs/p1-checklist.md`](docs/p1-checklist.md) | Part 1 |
-| [`docs/p3-checklist.md`](docs/p3-checklist.md) | Part 3 |
-| [`docs/bonus-checklist.md`](docs/bonus-checklist.md) | Bonus |
-
-Part 2 verification commands are in [`docs/school-defense.md`](docs/school-defense.md) (section 5).
+| [`docs/p1/checklist.md`](docs/p1/checklist.md) | Part 1 |
+| [`docs/p2/checklist.md`](docs/p2/checklist.md) | Part 2 |
+| [`docs/p3/checklist.md`](docs/p3/checklist.md) | Part 3 |
+| [`docs/bonus/checklist.md`](docs/bonus/checklist.md) | Bonus |
 
 ### Config guides (file-by-file)
 
 | Doc | Part |
 |-----|------|
-| [`docs/p1-config-guide.md`](docs/p1-config-guide.md) | Part 1 |
-| [`docs/p3-config-guide.md`](docs/p3-config-guide.md) | Part 3 |
-| [`docs/bonus-config-guide.md`](docs/bonus-config-guide.md) | Bonus |
+| [`docs/p1/config-guide.md`](docs/p1/config-guide.md) | Part 1 |
+| [`docs/p2/config-guide.md`](docs/p2/config-guide.md) | Part 2 |
+| [`docs/p3/config-guide.md`](docs/p3/config-guide.md) | Part 3 |
+| [`docs/bonus/config-guide.md`](docs/bonus/config-guide.md) | Bonus |
 
 ### Part READMEs
 

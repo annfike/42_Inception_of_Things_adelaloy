@@ -2,7 +2,7 @@
 
 This guide explains how to prepare a **Linux virtual machine** on a MacBook for defending **Inception of Things** (Part 3 and Bonus). The 42 subject expects work to run on a VM, not directly on macOS.
 
-For Part 3 and Bonus commands after the VM is ready, see [`p3-checklist.md`](p3-checklist.md) and [`bonus-checklist.md`](bonus-checklist.md).
+For Part 3 and Bonus commands after the VM is ready, see [`../p3/checklist.md`](../p3/checklist.md) and [`../bonus/checklist.md`](../bonus/checklist.md).
 
 ---
 
@@ -14,7 +14,7 @@ For Part 3 and Bonus commands after the VM is ready, see [`p3-checklist.md`](p3-
 | **Linux VM** | Defense machine — Docker, k3d, scripts, optional editor |
 | **k3d cluster** | Created inside the VM by `p3/scripts/setup.sh` or `bonus/scripts/setup.sh` |
 
-Part 1–2 (Vagrant + two small VMs) need **nested virtualization**. This works on **Linux hosts** (KVM supports nested virt) but **not on macOS/Apple Silicon** (Hypervisor.framework does not). See [`p1-nested-virt.md`](p1-nested-virt.md) for details and alternatives.
+Part 1–2 (Vagrant + two small VMs) need **nested virtualization**. This works on **Linux hosts** (KVM supports nested virt) but **not on macOS/Apple Silicon** (Hypervisor.framework does not). See [`p1-nested-virt.md`](p1-nested-virt.md) for p1/p2 in a Linux VM. Details and alternatives there.
 
 This document focuses on **Part 3 + Bonus** inside a Linux guest (no Vagrant needed).
 
@@ -319,7 +319,7 @@ cd ~/42_Inception_of_Things_adelaloy/p3
 bash scripts/setup.sh
 ```
 
-Verify (see [`p3-checklist.md`](p3-checklist.md)):
+Verify (see [`../p3/checklist.md`](../p3/checklist.md)):
 
 ```bash
 kubectl get nodes
@@ -359,7 +359,7 @@ git remote add origin http://localhost:8181/root/playground.git
 git push -u origin main
 ```
 
-Then follow [`bonus/README.md`](../bonus/README.md): GitLab UI, `playground` project, git push, Argo sync.
+Then follow [`../../bonus/README.md`](../../bonus/README.md) and [`../bonus/checklist.md`](../bonus/checklist.md): GitLab UI, `playground` project, git push, Argo sync.
 
 | Service | Typical access |
 |---------|----------------|
@@ -387,52 +387,3 @@ ssh your_user@<vm-ip>
 ```
 
 Useful for a second terminal while the UTM window stays on the desktop UI.
-
----
-
-## 8. Troubleshooting
-
-| Problem | Fix |
-|---------|-----|
-| ISO download **403 Forbidden** | Use latest point release from https://releases.ubuntu.com/24.04/ (e.g. `ubuntu-24.04.4-desktop-amd64.iso`) |
-| Mac shows M1 in Settings but `uname -m` is `x86_64` on macOS | Terminal/Cursor under **Rosetta** — check `sysctl -n machdep.cpu.brand_string`; on M-series still use UTM **Emulate** |
-| Only terminal, no Ubuntu desktop | Use **Desktop** ISO (not Server); open the **UTM window** (SSH has no GUI); or `sudo apt install -y ubuntu-desktop` then reboot |
-| Installer loops after install | UTM → **CD/DVD** → Clear ISO → reboot VM |
-| `virtiofs` mount: wrong fs type | Use **9p** mount (section 3) |
-| Docker: permission denied | `sudo usermod -aG docker $USER` → re-login |
-| Docker Desktop: cannot connect | `systemctl --user start docker-desktop`; ensure user is in `docker` group; do not also run `get.docker.com` |
-| `wil-playground` CrashLoop / `exec format error` | Guest is **aarch64** but image is **amd64** → use **Emulate** + amd64 Ubuntu, or binfmt on ARM guest |
-| UTM: amd64 ISO + ARM64 guest error | Do not pair **Virtualize** (ARM) with amd64 ISO; use **Emulate** or ARM ISO |
-| k3d works on macOS but defense must be in VM | Run `setup.sh` inside the Linux guest; 42 expects a VM, not the Mac host |
-| `GitLab not ready` during setup | Normal if GitLab is still starting; `kubectl get pods -n gitlab -w` until **READY 1/1**, then `bash scripts/gitlab-bootstrap.sh` |
-| GitLab CrashLoop / OOM | VM needs **16 GB** RAM; `kubectl describe pod -n gitlab -l app=gitlab` |
-| Part 3 and Bonus conflict | `k3d cluster delete iot` or `k3d cluster delete iot-bonus` |
-| Shared folder empty | Confirm UTM sharing path on Mac; remount 9p (section 3) |
-| Clipboard host ↔ guest not working | UTM: `spice-vdagent` (section 3.5); VirtualBox: Guest Additions + Bidirectional clipboard (section 3.5) |
-| Setup stopped but cluster exists | Re-run `bash scripts/setup.sh` (recreates cluster) or continue with bootstrap + manual GitLab steps |
-
----
-
-## 9. Defense checklist
-
-- [ ] Correct UTM mode: **Emulate** (Apple Silicon) or **Virtualize** (Intel) with **Desktop amd64** ISO
-- [ ] Linux VM boots to Ubuntu login (not the installer)
-- [ ] Inside guest: `uname -m` is `x86_64`
-- [ ] Project available (`/mnt/utm` or `git clone`)
-- [ ] `docker run hello-world` succeeds
-- [ ] `p3/scripts/setup.sh` completes without errors
-- [ ] `bonus/scripts/setup.sh` completes; GitLab bootstrap prints `Login: root / password123`
-- [ ] Demonstrate v1 → v2 GitOps change per checklist docs
-
----
-
-## Related docs
-
-| Document | Content |
-|----------|---------|
-| [`p3-checklist.md`](p3-checklist.md) | Part 3 verification commands |
-| [`bonus-checklist.md`](bonus-checklist.md) | Bonus verification commands |
-| [`p3-config-guide.md`](p3-config-guide.md) | Part 3 file reference |
-| [`bonus-config-guide.md`](bonus-config-guide.md) | Bonus file reference (scripts, timings) |
-
-Keep this file aligned with `p3/confs/argocd-app.yaml`, `bonus/confs/argocd-app-gitlab.yaml`, and `git remote get-url origin`.

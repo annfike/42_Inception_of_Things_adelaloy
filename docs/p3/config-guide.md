@@ -1,6 +1,6 @@
 # Part 3 — Configuration Guide
 
-This document explains the **three core Part 3 deliverables** in plain English: what each file does, how the pieces connect, and what to say during evaluation. For setup commands and expected outputs, see `docs/p3-checklist.md`. For the high-level GitOps story, see `p3/README.md`.
+This document explains the **three core Part 3 deliverables** in plain English: what each file does, how the pieces connect, and what to say during evaluation. For setup commands and expected outputs, see [`checklist.md`](checklist.md). For the high-level GitOps story, see [`../../p3/README.md`](../../p3/README.md).
 
 ## How the three files work together
 

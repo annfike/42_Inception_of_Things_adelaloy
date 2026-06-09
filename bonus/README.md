@@ -36,7 +36,7 @@ The bonus part extends Part 3 by replacing the public GitHub repository with a *
 
 ### One cluster, not separate VMs
 
-K3d creates **one** cluster (`iot-bonus`) in Docker. GitLab, Argo CD, and the app are pods in the **same** cluster, in namespaces `gitlab`, `argocd`, and `dev` — not three separate virtual machines. **Nodes** and **pods**: [`docs/bonus-config-guide.md`](../docs/bonus-config-guide.md) § *Nodes in the cluster*, *Pods in the cluster* (Argo CD table in [`p3-config-guide.md`](../docs/p3-config-guide.md)).
+K3d creates **one** cluster (`iot-bonus`) in Docker. GitLab, Argo CD, and the app are pods in the **same** cluster, in namespaces `gitlab`, `argocd`, and `dev` — not three separate virtual machines. **Nodes** and **pods**: [`docs/bonus/config-guide.md`](../docs/bonus/config-guide.md) § *Nodes in the cluster*, *Pods in the cluster* (Argo CD table in [`docs/p3/config-guide.md`](../docs/p3/config-guide.md)).
 
 ### Full GitOps Loop (No External Dependencies)
 1. Developer pushes code to **local GitLab** (inside the cluster)
@@ -68,11 +68,11 @@ bonus/
         └── deployment.yaml       # App manifests to push into GitLab project
 ```
 
-See [`docs/bonus-config-guide.md`](../docs/bonus-config-guide.md) (§ *Pods in the cluster*).
+See [`docs/bonus/config-guide.md`](../docs/bonus/config-guide.md) (§ *Pods in the cluster*).
 
 ## Prerequisites
 
-- Defense on a **Linux VM** (macOS host): see [`docs/vm-setup.md`](../docs/vm-setup.md)
+- Defense on a **Linux VM** (macOS host): see [`docs/setup/vm-setup.md`](../docs/setup/vm-setup.md)
 - **Docker** (Docker Desktop or Docker Engine)
 - At least **8 GB RAM** available (GitLab is memory-intensive)
 - Internet access (to pull Docker images)

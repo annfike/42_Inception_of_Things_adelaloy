@@ -134,7 +134,7 @@ vagrant up adelaloySW
 vagrant ssh adelaloyS -c "kubectl get nodes"
 ```
 
-Verify: 2 nodes **Ready**.
+Verify: 2 nodes **Ready**. Full checklist: [`../p1/checklist.md`](../p1/checklist.md).
 
 ```bash
 cd p1 && vagrant destroy -f
@@ -147,7 +147,7 @@ cd ~/42_Inception_of_Things_adelaloy/p2
 vagrant up
 ```
 
-Provisioning can take **10–15 min** (Traefik on 1024 MB RAM).
+Provisioning can take **10–15 min** (Traefik on 1024 MB RAM). Full verify: [`../p2/checklist.md`](../p2/checklist.md).
 
 ```bash
 vagrant ssh adelaloyS -c "kubectl get ingress"
@@ -172,7 +172,7 @@ bash scripts/setup.sh
 curl -s http://localhost:8888/
 ```
 
-Verify: `{"status":"ok", "message": "v1"}`. See [`p3-checklist.md`](p3-checklist.md).
+Verify: `{"status":"ok", "message": "v1"}`. See [`../p3/checklist.md`](../p3/checklist.md).
 
 ```bash
 k3d cluster delete iot
@@ -188,7 +188,7 @@ cd ~/42_Inception_of_Things_adelaloy/bonus
 bash scripts/setup.sh
 ```
 
-Then manual GitLab steps in [`bonus-checklist.md`](bonus-checklist.md). Test: `curl -s http://localhost:9888/`.
+Then manual GitLab steps in [`../bonus/checklist.md`](../bonus/checklist.md). Test: `curl -s http://localhost:9888/`.
 
 ---
 
@@ -204,25 +204,3 @@ Then manual GitLab steps in [`bonus-checklist.md`](bonus-checklist.md). Test: `c
 Never run p1/p2 Vagrant VMs while p3/bonus k3d is up.
 
 ---
-
-## 7. Troubleshooting
-
-| Problem | Fix |
-|---------|-----|
-| Whole host freezes | Lower VM RAM to **4096**, use Server ISO, close browser on host |
-| `kvm-ok` fails | Nested VT-x off on host → Settings → Processor → enable → reboot |
-| p2 Traefik slow | Wait up to 10 min; `vagrant ssh adelaloyS -c "kubectl get pods -A"` |
-| p1 + p2 conflict | Same IP `.110` — `vagrant destroy -f` in the other part first |
-| No clipboard | SSH from host (step 4.1) |
-| `VBoxManage` permission denied | Ask IT for VirtualBox access |
-
----
-
-## Related
-
-| Doc | Content |
-|-----|---------|
-| [`p1-checklist.md`](p1-checklist.md) | Part 1 verify |
-| [`p3-checklist.md`](p3-checklist.md) | Part 3 verify |
-| [`bonus-checklist.md`](bonus-checklist.md) | Bonus verify + GitLab |
-| [`vm-setup.md`](vm-setup.md) | MacBook + UTM path |

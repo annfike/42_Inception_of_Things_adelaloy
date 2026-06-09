@@ -1,6 +1,6 @@
 # Part 1 — Configuration Guide
 
-This document explains the **three core Part 1 deliverables** in plain English: what each file does, how the pieces connect, and what to say during evaluation. For setup commands and expected outputs, see `docs/p1-checklist.md`.
+This document explains the **three core Part 1 deliverables** in plain English: what each file does, how the pieces connect, and what to say during evaluation. For setup commands and expected outputs, see [`checklist.md`](checklist.md).
 
 ## How the three files work together
 
@@ -222,22 +222,3 @@ After success, `kubectl get nodes` on either VM should show **2 Ready** nodes.
 **Why not SSH from worker to server?** Simpler subject pattern: one shared directory, no extra keys between VMs.
 
 **Order matters:** always `vagrant up adelaloyS` before worker (or `vagrant up` which processes server first in one invocation).
-
----
-
-## What to say on evaluation (30 seconds)
-
-1. **Vagrantfile** — two VMs, login names, 1 CPU / 1024 MB, IPs `.110` / `.111`.
-2. **server.sh** — K3s controller, flannel on host-only, token to `/vagrant`.
-3. **worker.sh** — reads token, joins as agent; same cluster.
-4. **Demo** — `vagrant ssh`, `ip a`, `kubectl get nodes` → 2 Ready.
-
----
-
-## Related files (not provision scripts)
-
-| Path | Role |
-|------|------|
-| `p1/node-token` | Generated at runtime; gitignored |
-| `p1/kubeconfig` | Generated at runtime; gitignored |
-| `docs/p1-checklist.md` | Verification checklist with expected outputs |

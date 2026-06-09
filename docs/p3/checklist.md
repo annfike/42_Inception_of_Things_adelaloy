@@ -1,6 +1,6 @@
 # Part 3 — K3d + Argo CD
 
-Run inside a **Linux VM** with Docker (see [`vm-setup.md`](vm-setup.md)). Not on macOS host for defense.
+Run inside a **Linux VM** with Docker (see [`../setup/vm-setup.md`](../setup/vm-setup.md)). Not on macOS host for defense.
 
 ## Setup
 

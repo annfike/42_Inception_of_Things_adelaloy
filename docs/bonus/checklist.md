@@ -1,6 +1,6 @@
 # Bonus — GitLab + Argo CD
 
-Same Linux VM as Part 3. Use a **separate** cluster (`iot-bonus`). Delete Part 3 cluster first if RAM is tight:
+Same Linux VM as Part 3 (see [`../setup/vm-setup.md`](../setup/vm-setup.md)). Use a **separate** cluster (`iot-bonus`). Delete Part 3 cluster first if RAM is tight:
 
 ```bash
 k3d cluster delete iot 2>/dev/null || true

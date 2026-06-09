@@ -1,6 +1,6 @@
-# Part 1: Running Vagrant Inside a Linux VM (Nested Virtualization)
+# Parts 1–2: Running Vagrant Inside a Linux VM (Nested Virtualization)
 
-Part 1 requires Vagrant to create two VMs (K3s server + agent). This document explains how to run Part 1 inside a Linux VM using nested virtualization with KVM/libvirt.
+Parts 1 and 2 require Vagrant + VirtualBox or libvirt. This document explains how to run them inside a Linux VM using nested virtualization with KVM/libvirt.
 
 ---
 
@@ -159,26 +159,3 @@ The `p1/Vagrantfile` supports both VirtualBox and libvirt:
 | libvirt | Auto-selected when vagrant-libvirt plugin is installed | rsync |
 
 The `rsync` synced folder type works with any provider. The provisioning scripts (`server.sh`, `worker.sh`) are provider-agnostic.
-
----
-
-## Troubleshooting
-
-| Problem | Fix |
-|---------|-----|
-| `/dev/kvm` missing in guest | Enable nested virt on host + use `host-passthrough` CPU mode |
-| `vagrant up` uses wrong provider | `vagrant up --provider=libvirt` or `--provider=virtualbox` |
-| `Error: cannot load AppArmor profile` | `echo 'security_driver = "none"' \| sudo tee -a /etc/libvirt/qemu.conf && sudo systemctl restart libvirtd` |
-| Vagrant hangs at "Waiting for IP" | VM is booting without KVM (check `/dev/kvm`); with KVM it should take <60s |
-| `generic/ubuntu2204` box not found for libvirt | `vagrant box add generic/ubuntu2204 --provider=libvirt` |
-| rsync error | `sudo apt install rsync` inside host (not guest — rsync runs on the Vagrant host) |
-
----
-
-## Related docs
-
-| Document | Content |
-|----------|---------|
-| [`vm-setup.md`](vm-setup.md) | VM setup for Part 3 + Bonus |
-| [`p1-checklist.md`](p1-checklist.md) | Part 1 verification commands |
-| [`p1-config-guide.md`](p1-config-guide.md) | Part 1 file-by-file explanation |

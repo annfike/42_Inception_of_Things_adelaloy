@@ -1,6 +1,6 @@
 # Bonus — Configuration Guide
 
-This document explains the **core Bonus deliverables** in plain English: what each file does, how they connect to Part 3, and what to say during evaluation. For setup commands and expected outputs, see `docs/bonus-checklist.md`. For the high-level story, see `bonus/README.md`.
+This document explains the **core Bonus deliverables** in plain English: what each file does, how they connect to Part 3, and what to say during evaluation. For setup commands and expected outputs, see [`checklist.md`](checklist.md). For the high-level story, see [`../../bonus/README.md`](../../bonus/README.md).
 
 Bonus = Part 3 GitOps flow, but the Git remote is **local GitLab CE** inside the cluster instead of public GitHub.
 
@@ -47,7 +47,7 @@ Host (Docker)
 
 ### Nodes in the cluster
 
-Same layout as Part 3 (1 server + 2 agents), but cluster name **`iot-bonus`**. See `docs/p3-config-guide.md` § *Nodes in the cluster* for roles; node names look like `k3d-iot-bonus-server-0`, `k3d-iot-bonus-agent-0`, `k3d-iot-bonus-agent-1`.
+Same layout as Part 3 (1 server + 2 agents), but cluster name **`iot-bonus`**. See `../p3/config-guide.md` § *Nodes in the cluster* for roles; node names look like `k3d-iot-bonus-server-0`, `k3d-iot-bonus-agent-0`, `k3d-iot-bonus-agent-1`.
 
 ```bash
 kubectl get nodes -o wide
@@ -57,7 +57,7 @@ GitLab and Argo CD pods are heavy — they often land on **agents**; exact place
 
 ### Nodes vs pods
 
-Same as Part 3 — see `docs/p3-config-guide.md` § *Nodes vs pods* for the full table.
+Same as Part 3 — see `../p3/config-guide.md` § *Nodes vs pods* for the full table.
 
 In Bonus you still have **3 k3d nodes** (1 server + 2 agents) in cluster `iot-bonus`. **GitLab**, **Argo CD**, and **`wil-playground`** are **pods** scheduled onto those nodes, in namespaces `gitlab`, `argocd`, and `dev` respectively.
 
@@ -68,7 +68,7 @@ In Bonus you still have **3 k3d nodes** (1 server + 2 agents) in cluster `iot-bo
 | Argo CD pods | `kubectl get pods -n argocd` |
 | App pods | `kubectl get pods -n dev` |
 
-For Docker Desktop container names (`k3d-iot-bonus-server-0`, `k3d-iot-bonus-tools`, etc.) and why `*-tools` is not a separate cluster, see `docs/p3-config-guide.md` § *Docker Desktop: k3d-iot-* containers* (cluster name here is **`iot-bonus`**).
+For Docker Desktop container names (`k3d-iot-bonus-server-0`, `k3d-iot-bonus-tools`, etc.) and why `*-tools` is not a separate cluster, see `../p3/config-guide.md` § *Docker Desktop: k3d-iot-* containers* (cluster name here is **`iot-bonus`**).
 
 ### Pods in the cluster (what each one does)
 
@@ -88,7 +88,7 @@ kubectl get pods -n dev
 
 #### Namespace `argocd`
 
-Same components as Part 3 — see `docs/p3-config-guide.md` § *Pods in the cluster*. Repo URL is GitLab (`argocd-app-gitlab.yaml`) instead of GitHub; pod roles are unchanged.
+Same components as Part 3 — see `../p3/config-guide.md` § *Pods in the cluster*. Repo URL is GitLab (`argocd-app-gitlab.yaml`) instead of GitHub; pod roles are unchanged.
 
 #### Namespace `dev`
 
@@ -266,7 +266,7 @@ Same as Part 3: in-cluster API, namespace **`dev`**.
 
 ### Private repo / credentials
 
-If the GitLab project is private, register the repo in Argo CD with `root` / `password123` (see `bonus/README.md` and `docs/bonus-checklist.md`). Public/Internal projects often work without extra repo secrets.
+If the GitLab project is private, register the repo in Argo CD with `root` / `password123` (see [`../../bonus/README.md`](../../bonus/README.md) and [`checklist.md`](checklist.md)). Public/Internal projects often work without extra repo secrets.
 
 ---
 
@@ -307,27 +307,3 @@ Functionally **the same app** as Part 3: `wil-playground` Deployment + LoadBalan
 | Argo CD UI | `:8080` | `:9080` |
 | GitLab UI | — | port-forward `:8181` |
 | Application manifest | `p3/confs/argocd-app.yaml` | `bonus/confs/argocd-app-gitlab.yaml` |
-
----
-
-## Quick map for oral defense
-
-| Question | Point to |
-|----------|----------|
-| How is Bonus different from Part 3? | GitLab inside cluster replaces GitHub; same Argo CD + `dev` app |
-| Where is GitLab defined? | `bonus/confs/gitlab.yaml` |
-| How does Argo CD find the repo? | `argocd-app-gitlab.yaml` → `repoURL` on `gitlab.gitlab.svc.cluster.local` |
-| Why bootstrap script? | First-boot GitLab may miss root; script seeds/fixes `root` / `password123` |
-| What do you push to GitLab? | `manifests/deployment.yaml` (v1, then v2) |
-| How do you prove GitOps? | Push v2 to GitLab → Argo CD sync → `curl localhost:9888` shows v2 |
-
----
-
-## Related documents
-
-| Document | Content |
-|----------|---------|
-| `bonus/README.md` | Architecture, installation, GitLab project steps |
-| `docs/bonus-checklist.md` | Defense commands and expected outputs |
-| `docs/p3-config-guide.md` | Part 3 file reference (GitHub flow) |
-| `docs/evaluation-evidence.md` | Eval criteria mapped to repo files |

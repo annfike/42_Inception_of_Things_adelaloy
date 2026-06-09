@@ -1,6 +1,6 @@
 # Part 1 — Vagrant + K3s (Setup & Verification)
 
-Two VMs: K3s **server** (controller) + **worker** (agent). File details: [`p1-config-guide.md`](p1-config-guide.md). Nested virt on Linux VM: [`p1-nested-virt.md`](p1-nested-virt.md). School setup: [`school-defense.md`](school-defense.md).
+Two VMs: K3s **server** (controller) + **worker** (agent). File details: [`config-guide.md`](config-guide.md). Nested virt on Linux VM: [`../setup/p1-nested-virt.md`](../setup/p1-nested-virt.md). School setup: [`../setup/school-defense.md`](../setup/school-defense.md).
 
 ## 0) Subject requirements
 
@@ -195,7 +195,7 @@ Say aloud:
 | Re-provision server fails | k3s already running — only `vagrant up adelaloySW` |
 | `6443 refused` | `vagrant ssh adelaloyS -c "sudo systemctl restart k3s"` |
 | Apple Silicon macOS host | `bento/ubuntu-22.04` arm64 box (automatic in Vagrantfile) |
-| Linux VM nested virt | `kvm-ok` must pass; see `p1-nested-virt.md` |
+| Linux VM nested virt | `kvm-ok` must pass; see [`../setup/p1-nested-virt.md`](../setup/p1-nested-virt.md) |
 | p2 conflict | Destroy p1 before p2 — same IP `.110` |
 
 ## 6) Cleanup

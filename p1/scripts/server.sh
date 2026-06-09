@@ -45,6 +45,7 @@ sed "s|https://127.0.0.1:6443|https://${SERVER_IP}:6443|" \
 chmod 644 /vagrant/node-token /vagrant/kubeconfig
 
 ln -sf /usr/local/bin/k3s /usr/local/bin/kubectl
+ln -sf /usr/local/bin/kubectl /usr/bin/kubectl
 mkdir -p /home/vagrant/.kube
 cp /vagrant/kubeconfig /home/vagrant/.kube/config
 chown -R vagrant:vagrant /home/vagrant/.kube

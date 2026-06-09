@@ -44,12 +44,13 @@ Server first, then worker. First run ~5–15 min (box download + K3s).
 - Worker ends with `[worker] joined`
 - On the machine running Vagrant: `p1/node-token` and `p1/kubeconfig` (if synced folder writes back to host)
 
-If worker waits for token (rsync folder is host→guest only):
+If worker has empty `/vagrant/node-token` (libvirt/rsync provider only):
 
 ```bash
 vagrant ssh adelaloyS -c "cat /vagrant/node-token" > node-token
+vagrant ssh adelaloyS -c "cat /vagrant/kubeconfig" > kubeconfig
 vagrant rsync
-vagrant up adelaloySW
+vagrant provision adelaloySW
 ```
 
 ## 3) Verification
@@ -126,9 +127,17 @@ vagrant ssh adelaloySW -c "test -s /vagrant/node-token && echo OK"
 
 Use `kubectl` as user **`vagrant`** (`~/.kube/config`). Do **not** use `sudo k3s kubectl` on the worker.
 
+If worker shows **`kubectl: command not found`** → K3s agent never installed. Fix token + reprovision (see step 2 and 3.5).
+
 ```bash
 vagrant ssh adelaloyS -c "kubectl get nodes -o wide"
 vagrant ssh adelaloySW -c "kubectl get nodes -o wide"
+```
+
+If worker still has no `kubectl` in PATH but k3s-agent is active:
+
+```bash
+vagrant ssh adelaloySW -c "/usr/local/bin/kubectl get nodes -o wide"
 ```
 
 **Expected:**
@@ -180,7 +189,8 @@ Say aloud:
 | Symptom | Fix |
 |---------|-----|
 | TLS handshake timeout | `vagrant ssh adelaloyS -c "sudo systemctl restart k3s"` → retry with `--request-timeout=120s` |
-| Worker waiting for token | Copy token to host (step 2) → `vagrant rsync` → `vagrant up adelaloySW` |
+| Worker waiting for token | Copy token to host (step 2) → `vagrant rsync` → `vagrant provision adelaloySW` |
+| Worker `kubectl: command not found` | `k3s-agent` inactive — reprovision worker after token fix; or `/usr/local/bin/kubectl` |
 | `/vagrant` missing on worker | `vagrant reload adelaloySW` |
 | Re-provision server fails | k3s already running — only `vagrant up adelaloySW` |
 | `6443 refused` | `vagrant ssh adelaloyS -c "sudo systemctl restart k3s"` |

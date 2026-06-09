@@ -46,6 +46,7 @@ export INSTALL_K3S_EXEC="agent \
 curl -sfL https://get.k3s.io | sh -
 
 ln -sf /usr/local/bin/k3s /usr/local/bin/kubectl
+ln -sf /usr/local/bin/kubectl /usr/bin/kubectl
 until [[ -f /vagrant/kubeconfig ]]; do sleep 2; done
 mkdir -p /home/vagrant/.kube
 cp /vagrant/kubeconfig /home/vagrant/.kube/config

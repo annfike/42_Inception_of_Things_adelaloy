@@ -18,6 +18,8 @@ else
   BOX_VERSION = MAC_ARM64 ? "202502.21.0" : nil
 end
 
+SYNCED_FOLDER_TYPE = HAS_LIBVIRT ? "rsync" : "virtualbox"
+
 Vagrant.configure("2") do |config|
   config.vm.box = BOX
   config.vm.box_version = BOX_VERSION if defined?(BOX_VERSION) && BOX_VERSION
@@ -41,7 +43,7 @@ Vagrant.configure("2") do |config|
       v.cpus = 1
     end
 
-    server.vm.synced_folder ".", "/vagrant", type: "rsync"
+    server.vm.synced_folder ".", "/vagrant", type: SYNCED_FOLDER_TYPE
     server.vm.provision "shell", path: "scripts/server.sh", args: [SERVER_IP]
   end
 
@@ -60,7 +62,7 @@ Vagrant.configure("2") do |config|
       v.cpus = 1
     end
 
-    worker.vm.synced_folder ".", "/vagrant", type: "rsync"
+    worker.vm.synced_folder ".", "/vagrant", type: SYNCED_FOLDER_TYPE
     worker.vm.provision "shell", path: "scripts/worker.sh", args: [SERVER_IP, WORKER_IP]
   end
 end

@@ -30,6 +30,21 @@ wait_deployment() {
   return 1
 }
 
+kubectl_apply_retry() {
+  local target="$1"
+  local attempt
+  for attempt in $(seq 1 12); do
+    if kubectl apply -f "${target}" --request-timeout=120s 2>/dev/null; then
+      return 0
+    fi
+    echo ">>> [Server] API unavailable, retry ${attempt}/12..."
+    systemctl restart k3s
+    sleep 30
+    until kubectl get nodes 2>/dev/null | grep -q Ready; do sleep 5; done
+  done
+  return 1
+}
+
 swapoff -a || true
 
 FLANNEL_IFACE="$(flannel_iface "${SERVER_IP}")"
@@ -69,15 +84,21 @@ for i in $(seq 1 120); do
   sleep 5
 done
 
-echo ">>> [Server] Applying Kubernetes manifests..."
-kubectl apply -f /vagrant/confs/
+echo ">>> [Server] Applying app manifests..."
+kubectl_apply_retry /vagrant/confs/app-one.yaml
+kubectl_apply_retry /vagrant/confs/app-two.yaml
+kubectl_apply_retry /vagrant/confs/app-three.yaml
 
 wait_deployment app-one 1
 wait_deployment app-two 3
 wait_deployment app-three 1
 
+echo ">>> [Server] Applying Ingress (API may need retries on 1024 MB RAM)..."
+kubectl_apply_retry /vagrant/confs/ingress.yaml
+
 mkdir -p /home/vagrant/.kube
-cp /etc/rancher/k3s/k3s.yaml /home/vagrant/.kube/config
+sed "s|https://127.0.0.1:6443|https://${SERVER_IP}:6443|" \
+  /etc/rancher/k3s/k3s.yaml > /home/vagrant/.kube/config
 chown -R vagrant:vagrant /home/vagrant/.kube
 chmod 600 /home/vagrant/.kube/config
 grep -q 'alias k=' /home/vagrant/.bashrc 2>/dev/null || echo 'alias k="kubectl"' >> /home/vagrant/.bashrc

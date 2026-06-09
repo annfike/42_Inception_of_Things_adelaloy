@@ -200,6 +200,55 @@ After reboot, copy on the host (`Ctrl+C`) and paste in the guest terminal (`Ctrl
 
 If clipboard still fails, use `git clone` inside the VM instead of copying long commands.
 
+### VirtualBox shared folders (`permission denied`)
+
+Host: **Settings → Shared Folders** → add folder, name e.g. `project`, **Auto-mount** on.
+
+Inside the guest (requires Guest Additions from section above):
+
+```bash
+sudo usermod -aG vboxsf "$USER"
+sudo reboot
+```
+
+After reboot:
+
+```bash
+ls /media/sf_*
+ls /media/"$USER"/sf_*
+```
+
+Typical path: `/media/sf_project` or `/media/$USER/sf_project`.
+
+Manual mount if auto-mount failed:
+
+```bash
+sudo mkdir -p /mnt/project
+sudo mount -t vboxsf project /mnt/project
+ls /mnt/project
+```
+
+If `lsmod | grep vboxsf` shows the module but access still fails:
+
+```bash
+id | grep vboxsf
+ls -la /media/
+ls -la /media/"$USER"/
+sudo ls /media/sf_*
+```
+
+- `id` without `vboxsf` → log out fully (not only reboot once), or run `newgrp vboxsf`
+- Folder under `/media/$USER/sf_<name>/` on Ubuntu 24.04, not only `/media/sf_<name>/`
+- `sudo ls` works but user `ls` fails → remount with your uid:
+
+```bash
+sudo mkdir -p /mnt/project
+sudo mount -t vboxsf -o uid="$(id -u)",gid="$(id -g)" project /mnt/project
+ls /mnt/project
+```
+
+Replace `project` with the **Folder Name** from VirtualBox Shared Folders settings.
+
 ---
 
 ## 4. Software to install in the guest

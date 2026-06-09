@@ -150,6 +150,41 @@ cd 42_Inception_of_Things_adelaloy
 
 ---
 
+## 3.5 Clipboard (copy/paste host ↔ guest)
+
+### UTM (MacBook)
+
+Inside the Ubuntu guest:
+
+```bash
+sudo apt update
+sudo apt install -y spice-vdagent
+sudo systemctl enable --now spice-vdagent
+```
+
+Reboot the VM. In UTM → VM settings → **Sharing**, ensure clipboard sharing is enabled if the option is present.
+
+### VirtualBox (school Linux host)
+
+Inside the Ubuntu guest:
+
+```bash
+sudo apt update
+sudo apt install -y virtualbox-guest-utils virtualbox-guest-dkms
+sudo reboot
+```
+
+On the **host** (with the VM running or stopped):
+
+- **Settings → General → Advanced → Shared Clipboard:** **Bidirectional**
+- Or **Devices → Shared Clipboard → Bidirectional**
+
+After reboot, copy on the host (`Ctrl+C`) and paste in the guest terminal (`Ctrl+Shift+V` in GNOME Terminal, or right-click → Paste).
+
+If clipboard still fails, use `git clone` inside the VM instead of copying long commands.
+
+---
+
 ## 4. Software to install in the guest
 
 Part 3 and Bonus `setup.sh` scripts install **Docker**, **k3d**, **kubectl**, **Helm**, and **argocd** CLI if they are missing. You only need base packages and Docker working beforehand.
@@ -307,6 +342,7 @@ Useful for a second terminal while the UTM window stays on the desktop UI.
 | GitLab CrashLoop / OOM | VM needs **16 GB** RAM; `kubectl describe pod -n gitlab -l app=gitlab` |
 | Part 3 and Bonus conflict | `k3d cluster delete iot` or `k3d cluster delete iot-bonus` |
 | Shared folder empty | Confirm UTM sharing path on Mac; remount 9p (section 3) |
+| Clipboard host ↔ guest not working | UTM: `spice-vdagent` (section 3.5); VirtualBox: Guest Additions + Bidirectional clipboard (section 3.5) |
 | Setup stopped but cluster exists | Re-run `bash scripts/setup.sh` (recreates cluster) or continue with bootstrap + manual GitLab steps |
 
 ---

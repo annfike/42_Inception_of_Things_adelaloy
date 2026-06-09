@@ -170,7 +170,18 @@ Inside the Ubuntu guest:
 
 ```bash
 sudo apt update
-sudo apt install -y virtualbox-guest-utils virtualbox-guest-dkms
+sudo apt install -y virtualbox-guest-utils virtualbox-guest-x11
+sudo reboot
+```
+
+If apt packages are missing or clipboard still fails, use the ISO from the host instead (VM running):
+
+1. **Devices → Insert Guest Additions CD image**
+2. Inside the guest:
+
+```bash
+sudo mount /dev/cdrom /mnt
+sudo /mnt/VBoxLinuxAdditions.run
 sudo reboot
 ```
 

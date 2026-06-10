@@ -178,7 +178,31 @@ Say aloud:
 | Apps ImagePullBackOff | Check internet in VM |
 | curl returns 404 | Traefik not ready or Ingress missing — `kubectl get ingress` |
 | Conflict with p1 | `cd p1 && vagrant destroy -f` then retry p2 |
-| Provision timeout | Re-run `vagrant provision` |
+| Provision timeout on app-two | Finish manually (below) — do **not** `destroy` |
+
+### Provision failed on app-two (SSH non-zero exit)
+
+`vagrant provision` may loop-fail while pods are actually Running. Check first:
+
+```bash
+vagrant ssh adelaloyS -c "sudo k3s kubectl get pods -o wide --request-timeout=120s"
+vagrant ssh adelaloyS -c "sudo k3s kubectl get deployment"
+```
+
+If app-one / app-two pods are **Running**, finish without `vagrant provision`:
+
+```bash
+vagrant ssh adelaloyS -c "sudo k3s kubectl apply -f /vagrant/confs/app-three.yaml --request-timeout=120s"
+vagrant ssh adelaloyS -c "sudo k3s kubectl apply -f /vagrant/confs/ingress.yaml --request-timeout=120s"
+vagrant ssh adelaloyS -c "sudo mkdir -p /home/vagrant/.kube && sudo sed 's|https://127.0.0.1:6443|https://192.168.56.110:6443|' /etc/rancher/k3s/k3s.yaml | sudo tee /home/vagrant/.kube/config > /dev/null && sudo chown -R vagrant:vagrant /home/vagrant/.kube && sudo chmod 600 /home/vagrant/.kube/config"
+vagrant ssh adelaloyS -c "curl -s -H 'Host: app1.com' http://192.168.56.110"
+vagrant ssh adelaloyS -c "curl -s -H 'Host: app2.com' http://192.168.56.110"
+vagrant ssh adelaloyS -c "curl -s http://192.168.56.110"
+```
+
+Three curls OK → **p2 is done** for defense even if Vagrant reported an error.
+
+After `git pull` (fixed wait logic), `vagrant provision` should succeed on retry.
 
 ### API unavailable during deployment wait
 
@@ -191,11 +215,7 @@ vagrant ssh adelaloyS -c "kubectl get pods --request-timeout=120s"
 cd p2 && vagrant provision
 ```
 
-If pods are **Running** but provision keeps failing, apply Ingress manually:
-
-```bash
-vagrant ssh adelaloyS -c "kubectl apply -f /vagrant/confs/ingress.yaml --request-timeout=120s"
-```
+If pods are **Running** but provision keeps failing, use **Provision failed on app-two** above.
 
 ### Ingress apply failed (`client connection lost`)
 

@@ -22,19 +22,30 @@ wait_api() {
   return 1
 }
 
+running_pods() {
+  local name="$1"
+  kubectl_cmd get pods -l "app=${name}" --field-selector=status.phase=Running \
+    --no-headers 2>/dev/null | wc -l | tr -d ' '
+}
+
 wait_deployment() {
   local name="$1"
   local replicas="$2"
   local timeout="${3:-1800}"
   local elapsed=0
   local ready
+  local running
 
   echo ">>> [Server] Waiting for deployment/${name} (${replicas} ready)..."
   while [ "${elapsed}" -lt "${timeout}" ]; do
+    running="$(running_pods "${name}")"
+    if [ "${running}" = "${replicas}" ]; then
+      echo ">>> [Server] deployment/${name} ready (${running} pods Running)"
+      return 0
+    fi
     if ! ready="$(kubectl_cmd get deployment "${name}" -o jsonpath='{.status.readyReplicas}')"; then
-      echo ">>> [Server] API busy, waiting 30s..."
+      echo ">>> [Server] API busy (${running}/${replicas} pods Running), waiting 30s..."
       sleep 30
-      elapsed=$((elapsed + 30))
       continue
     fi
     ready="${ready:-0}"

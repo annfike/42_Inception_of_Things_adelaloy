@@ -141,7 +141,7 @@ Tells Traefik how to route HTTP requests to Services based on the `Host` header.
 |--------------|-----------------|
 | `Host: app1.com` | `app-one:80` |
 | `Host: app2.com` | `app-two:80` |
-| No matching host / default | `app-three:80` |
+| No matching host / bare IP (`curl http://192.168.56.110`) | `app-three:80` via `defaultBackend` + host-less rule |
 
 ### Key fields
 
@@ -149,12 +149,15 @@ Tells Traefik how to route HTTP requests to Services based on the `Host` header.
 spec:
   defaultBackend:
     service:
-      name: app-three    # subject: IP only → app3
+      name: app-three
   rules:
     - host: app1.com
       ...
     - host: app2.com
       ...
+    - http:              # no host — catch-all (IP curl); K8s rejects IP in host:
+        paths: ...
+          backend: app-three
 ```
 
 ### Testing

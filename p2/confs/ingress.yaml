@@ -31,8 +31,7 @@ spec:
                 name: app-two
                 port:
                   number: 80
-    - host: 192.168.56.110
-      http:
+    - http:
         paths:
           - path: /
             pathType: Prefix

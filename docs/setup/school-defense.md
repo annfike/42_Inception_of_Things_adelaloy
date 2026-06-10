@@ -13,7 +13,7 @@ VBoxManage --version
 uname -m    # x86_64
 ```
 
-If `VBoxManage` fails — ask IT. Clipboard/shared folders often broken; use **SSH** (step 4.1) and **git clone** (step 5).
+If `VBoxManage` fails — ask IT. Clipboard often broken; use **SSH** (§4.1) and **shared folder** (§4.2) for the project.
 
 ---
 
@@ -62,10 +62,12 @@ VBoxManage startvm "$VM"
 ```bash
 sudo apt update && sudo apt install -y \
   git curl wget ca-certificates gnupg \
+  virtualbox-guest-utils virtualbox-guest-x11 \
   virtualbox vagrant docker.io openssh-server cpu-checker
 
 sudo usermod -aG docker "$USER"
 sudo usermod -aG vboxusers "$USER"
+sudo usermod -aG vboxsf "$USER"
 sudo reboot
 ```
 
@@ -104,12 +106,51 @@ From host terminal — paste commands here:
 ssh -p 2222 YOUR_USER@127.0.0.1
 ```
 
-### 4.2 Project via git (inside VM)
+### 4.2 Project via shared folder (recommended)
+
+Copy the repo onto the **host** first (USB, laptop, zip — `git clone` is often blocked at school):
 
 ```bash
-git clone https://github.com/annfike/42_Inception_of_Things_adelaloy.git
-cd 42_Inception_of_Things_adelaloy
+ls /home/$USER/goinfre/42_Inception_of_Things_adelaloy
 ```
+
+VM **off**. On **host**:
+
+| Method | Steps |
+|--------|--------|
+| GUI | VM `iot` → **Settings → Shared Folders** → add host path above, **Folder Name** `project`, **Auto-mount** + **Make Permanent** |
+| CLI | See below |
+
+```bash
+VBoxManage sharedfolder add "iot" \
+  --name project \
+  --hostpath "/home/$USER/goinfre/42_Inception_of_Things_adelaloy" \
+  --automount
+```
+
+Start the VM. Inside the **guest** (Guest Additions from §3):
+
+```bash
+ls /media/"$USER"/sf_project
+ls /media/sf_project
+ln -sf /media/"$USER"/sf_project ~/42_Inception_of_Things_adelaloy
+cd ~/42_Inception_of_Things_adelaloy
+```
+
+On Ubuntu 24.04 the auto-mount path is often `/media/$USER/sf_project`, not `/media/sf_project`.
+
+Manual mount if auto-mount failed:
+
+```bash
+sudo mkdir -p /mnt/project
+sudo mount -t vboxsf -o uid="$(id -u)",gid="$(id -g)" project /mnt/project
+ln -sf /mnt/project ~/42_Inception_of_Things_adelaloy
+cd ~/42_Inception_of_Things_adelaloy
+```
+
+If `id` shows no `vboxsf` — log out fully (not only reboot), or run `newgrp vboxsf`.
+
+If `virtualbox-guest-utils` from apt is missing or the share is empty, install Guest Additions from the host — [`vm-setup.md`](vm-setup.md) §3.5 **VirtualBox (school Linux host)**. Permission issues: same file, **VirtualBox shared folders**.
 
 ### 4.3 VS Code (optional)
 

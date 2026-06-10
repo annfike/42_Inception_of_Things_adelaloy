@@ -31,3 +31,13 @@ spec:
                 name: app-two
                 port:
                   number: 80
+    - host: 192.168.56.110
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app-three
+                port:
+                  number: 80

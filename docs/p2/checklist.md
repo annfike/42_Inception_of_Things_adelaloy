@@ -167,7 +167,35 @@ Say aloud:
 2. Three Deployments with 1, 3, and 1 replicas
 3. Ingress routes by `Host` header; default → app3
 
-## 5) Troubleshooting
+## 5) Snapshot — save and restore (school nested)
+
+First `vagrant up` on nested `iot` can take **40–60 min**. After p2 is verified (§3.6 curls OK), save state once; on defense day restore in **~5–10 min**.
+
+**Create** (inside `iot`, after three curls work):
+
+```bash
+cd p2
+vagrant halt -f
+VBoxManage snapshot adelaloyS take p2-ready
+vagrant up --no-provision
+```
+
+**Defense day** (inside `iot`):
+
+```bash
+cd p2
+vagrant halt -f
+VBoxManage snapshot adelaloyS restore p2-ready
+vagrant up --no-provision
+```
+
+Wait **5–10 min**, then §4 demo commands (three curls).
+
+Do **not** `vagrant destroy` or `vagrant up` without `--no-provision` before the evaluator.
+
+Step-by-step (p1 snapshots, pitfalls): [`../setup/school-defense.md`](../setup/school-defense.md) §7. All commands run **inside `iot`** — no SSH from the school host.
+
+## 6) Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|

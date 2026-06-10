@@ -13,7 +13,7 @@ VBoxManage --version
 uname -m    # x86_64
 ```
 
-If `VBoxManage` fails — ask IT. Clipboard often broken; use **SSH** (§4.1) and **shared folder** (§4.2) for the project.
+If `VBoxManage` fails — ask IT. Clipboard often broken; work inside the **`iot` terminal** and use **shared folder** (§4.2) for the project. SSH from host (§4.1) is optional.
 
 ---
 
@@ -86,7 +86,7 @@ kvm-ok
 
 ## 4. Host ↔ VM without clipboard
 
-### 4.1 SSH from school host (recommended)
+### 4.1 SSH from school host (optional)
 
 VM running, inside guest once:
 
@@ -100,7 +100,7 @@ On **host** (if port forward not set yet, VM off):
 VBoxManage modifyvm "iot" --natpf1 "ssh,tcp,,2222,,22"
 ```
 
-From host terminal — paste commands here:
+Use this only if the `iot` GUI is frozen but the host terminal still works. Otherwise work **inside the `iot` window** (terminal in the guest).
 
 ```bash
 ssh -p 2222 YOUR_USER@127.0.0.1
@@ -188,7 +188,7 @@ cd ~/42_Inception_of_Things_adelaloy/p2
 vagrant up
 ```
 
-Provisioning can take **10–15 min** (Traefik on 1024 MB RAM). Full verify: [`../p2/checklist.md`](../p2/checklist.md).
+First run on nested `iot` can take **40–60 min**; use **2048 MB** in `p2/Vagrantfile` to avoid OOM. Full verify: [`../p2/checklist.md`](../p2/checklist.md).
 
 ```bash
 vagrant ssh adelaloyS -c "kubectl get ingress"
@@ -199,8 +199,10 @@ vagrant ssh adelaloyS -c "curl -s http://192.168.56.110"
 
 Expected: `Hello from app1.`, `Hello from app2.`, default → app3.
 
+After success, take snapshot `p2-ready` — see **§7** (do not `destroy` if you plan to use the snapshot).
+
 ```bash
-cd p2 && vagrant destroy -f
+cd p2 && vagrant destroy -f    # only when switching to p1 or freeing disk
 ```
 
 ### Part 3 — k3d + Argo CD
@@ -243,5 +245,147 @@ Then manual GitLab steps in [`../bonus/checklist.md`](../bonus/checklist.md). Te
 | bonus | ~6–8 GB | tight on 4 GB VM — may OOM |
 
 Never run p1/p2 Vagrant VMs while p3/bonus k3d is up.
+
+---
+
+## 7. Snapshots — fast p2 (and p1) defense
+
+Nested `vagrant up` for p2 can take **40–60 min** on the first run. After everything works once, save the **inner** Vagrant VM (`adelaloyS`) as a VirtualBox snapshot. On defense day you restore it in **~5–10 min** instead of reprovisioning.
+
+Applies inside **`iot`** (the Ubuntu guest where you run Vagrant), not on the school host.
+
+### What a snapshot stores
+
+| Layer | Snapshot name | What it is |
+|-------|---------------|------------|
+| School host | — | Your `iot` VM (optional; not covered here) |
+| Inside `iot` | `p2-ready` | Vagrant VM `adelaloyS` with K3s, pods, Ingress already configured |
+
+Snapshot = disk + RAM state of `adelaloyS` at the moment you took it. **Not** a git commit — cluster data lives on the Vagrant VM disk.
+
+### One-time: create snapshot (after p2 fully works)
+
+Run only when all three curls succeed (see §5 Part 2).
+
+```bash
+cd ~/42_Inception_of_Things_adelaloy/p2
+
+vagrant ssh adelaloyS -c "curl -s -H 'Host: app1.com' http://192.168.56.110"
+vagrant ssh adelaloyS -c "curl -s -H 'Host: app2.com' http://192.168.56.110"
+vagrant ssh adelaloyS -c "curl -s http://192.168.56.110"
+```
+
+Then:
+
+```bash
+vagrant halt -f
+VBoxManage list runningvms          # must be empty for adelaloyS
+VBoxManage snapshot adelaloyS take p2-ready --description "p2 verified"
+VBoxManage snapshot adelaloyS list
+vagrant up --no-provision
+```
+
+`vagrant halt` is required — VirtualBox refuses `snapshot take` while the VM is running.
+
+### Defense day: restore snapshot and demo
+
+**Do not** run `vagrant destroy` or full `vagrant up` (provision) before the evaluator.
+
+All commands below run in a **terminal inside `iot`** (VirtualBox window or console). No SSH from the school host required.
+
+#### A. Start outer VM `iot`
+
+Open `iot` in VirtualBox (normal GUI) or from a host terminal:
+
+```bash
+VBoxManage startvm iot
+```
+
+Log in inside the VM, open a terminal.
+
+#### B. Restore inner VM `adelaloyS`
+
+In the **`iot`** terminal:
+
+```bash
+cd ~/42_Inception_of_Things_adelaloy/p2
+
+vagrant halt -f
+VBoxManage list runningvms          # adelaloyS must not be running
+VBoxManage snapshot adelaloyS restore p2-ready
+VBoxManage snapshot adelaloyS list    # current snapshot = p2-ready
+vagrant up --no-provision
+```
+
+`--no-provision` = boot the VM only; **do not** re-run `server.sh`. Provisioning again wastes time and can hit API/OOM errors.
+
+#### C. Wait for K3s (5–10 min)
+
+After restore/reboot, the API may be slow. Do not panic for the first few minutes.
+
+```bash
+vagrant ssh adelaloyS -c "free -h"
+vagrant ssh adelaloyS -c "sudo k3s kubectl get nodes --request-timeout=300s"
+vagrant ssh adelaloyS -c "sudo k3s kubectl get pods --request-timeout=300s"
+```
+
+If `get nodes` returns **TLS handshake timeout**, wait 2–3 min and retry. If it persists:
+
+```bash
+vagrant ssh adelaloyS -c "sudo systemctl restart k3s"
+sleep 90
+```
+
+#### D. Quick demo (evaluator)
+
+```bash
+vagrant status
+vagrant ssh adelaloyS -c "kubectl get nodes; kubectl get pods; kubectl get ingress"
+vagrant ssh adelaloyS -c "curl -s -H 'Host: app1.com' http://192.168.56.110"
+vagrant ssh adelaloyS -c "curl -s -H 'Host: app2.com' http://192.168.56.110"
+vagrant ssh adelaloyS -c "curl -s http://192.168.56.110"
+```
+
+Expected: `Hello from app1.`, `Hello from app2.`, `Hello from app3.`
+
+Full defense talking points: [`../p2/checklist.md`](../p2/checklist.md) §4.
+
+#### E. After defense — shut down cleanly
+
+Inside **`iot`**:
+
+```bash
+cd ~/42_Inception_of_Things_adelaloy/p2
+vagrant halt -f
+sudo shutdown -h now
+```
+
+Or use VirtualBox **Machine → ACPI Shutdown** on the `iot` window.
+
+### Update snapshot after config changes
+
+If you change manifests, Ingress, or `Vagrantfile` and re-verify p2:
+
+```bash
+cd p2
+vagrant halt -f
+VBoxManage snapshot adelaloyS delete p2-ready
+VBoxManage snapshot adelaloyS take p2-ready
+vagrant up --no-provision
+```
+
+### Common mistakes
+
+| Mistake | Result |
+|---------|--------|
+| `snapshot take` while VM running | Error: machine locked |
+| `vagrant up` without `--no-provision` after restore | Re-runs `server.sh`; slow, may fail |
+| `VBoxManage modifyvm --memory` without editing `Vagrantfile` | `vagrant up` resets RAM to Vagrantfile value |
+| `vagrant destroy` after snapshot | Snapshot may be useless; cluster wiped |
+| Restore snapshot while VM is running | Error — `vagrant halt -f` first |
+
+### RAM note (p2)
+
+On nested `iot`, `p2/Vagrantfile` uses **2048 MB** for `adelaloyS` to avoid OOM. Subject p2 does not mandate 1024 MB (that limit is for p1). Ensure `grep memory p2/Vagrantfile` shows `2048` before relying on the snapshot.
 
 ---

@@ -34,9 +34,44 @@ vagrant validate
 vagrant up
 ```
 
-First run ~10–20 min (K3s + Traefik + image pulls on 1024 MB RAM).
+First run **20–40 min** inside nested `iot` (slow SSH boot + K3s + Traefik + image pulls).  
+`SSH auth method: private key` can sit **10–20 min** — not frozen; Vagrant waits for the inner VM to boot.
+
+Use `screen` or `tmux` so you can detach and come back:
+
+```bash
+screen -S p2
+cd p2 && vagrant up
+# Ctrl+A then D to detach; screen -r p2 to reattach
+```
 
 **Expected:** provision ends with `Setup complete`, `kubectl get ingress` shows `app-ingress`.
+
+### Stuck on SSH / interrupted `vagrant up`
+
+After `Ctrl+C` on `SSH auth method: private key`:
+
+```bash
+vagrant status
+```
+
+| Status | Action |
+|--------|--------|
+| `running` (not yet provisioned) | `vagrant up` again — resumes where it left off |
+| `running` (provision failed) | `vagrant provision` |
+| `poweroff` / `aborted` | `vagrant up` |
+| weird / hung | `vagrant halt -f && vagrant up` |
+| still broken | `vagrant destroy -f && vagrant up` |
+
+Second terminal (inside `iot`) while waiting:
+
+```bash
+VBoxManage list runningvms
+free -h
+cd p2 && vagrant ssh-config
+```
+
+If `adelaloyS` is **running** and manual SSH works — main `vagrant up` will finish soon.
 
 ## 3) Verification
 

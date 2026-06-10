@@ -15,6 +15,9 @@ Vagrant.configure("2") do |config|
   config.vm.box = BOX
   config.vm.box_version = BOX_VERSION if BOX_VERSION
   config.vm.box_architecture = "arm64" if MAC_ARM64
+  config.vm.boot_timeout = 1200
+  config.ssh.connect_timeout = 60
+  config.ssh.keep_alive = true
 
   config.vm.define SERVER_NAME do |server|
     server.vm.hostname = SERVER_NAME

@@ -24,7 +24,7 @@ Vagrant.configure("2") do |config|
     server.vm.network "private_network", ip: SERVER_IP
     server.vm.provider "virtualbox" do |v|
       v.customize ["modifyvm", :id, "--name", SERVER_NAME]
-      v.memory = 1024
+      v.memory = 2048
       v.cpus = 1
     end
     server.vm.synced_folder ".", "/vagrant", type: "virtualbox"

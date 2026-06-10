@@ -25,7 +25,7 @@ wait_api() {
 wait_deployment() {
   local name="$1"
   local replicas="$2"
-  local timeout="${3:-900}"
+  local timeout="${3:-1800}"
   local elapsed=0
   local ready
 
@@ -108,7 +108,7 @@ wait_deployment app-one 1
 
 echo ">>> [Server] Applying app-two..."
 kubectl_apply_retry /vagrant/confs/app-two.yaml
-wait_deployment app-two 3
+wait_deployment app-two 3 2400
 
 echo ">>> [Server] Applying app-three..."
 kubectl_apply_retry /vagrant/confs/app-three.yaml

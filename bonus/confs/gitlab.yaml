@@ -17,7 +17,7 @@ metadata:
   namespace: gitlab
 type: Opaque
 data:
-  password: cGFzc3dvcmQxMjM=
+  password: Um9vdElvdDQyQm9udXMh
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -50,7 +50,11 @@ spec:
             - name: GITLAB_OMNIBUS_CONFIG
               value: |
                 external_url 'http://gitlab.gitlab.svc.cluster.local'
-                gitlab_rails['initial_root_password'] = 'password123'
+                gitlab_rails['initial_root_password'] = 'RootIot42Bonus!'
+                gitlab_rails['password_number_required'] = false
+                gitlab_rails['password_symbol_required'] = false
+                gitlab_rails['password_uppercase_required'] = false
+                gitlab_rails['password_lowercase_required'] = false
                 nginx['listen_port'] = 80
                 nginx['listen_https'] = false
                 prometheus_monitoring['enable'] = false

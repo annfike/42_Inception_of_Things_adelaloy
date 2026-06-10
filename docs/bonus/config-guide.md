@@ -8,7 +8,7 @@ Bonus = Part 3 GitOps flow, but the Git remote is **local GitLab CE** inside the
 
 ```
 setup.sh              →  K3d cluster iot-bonus, GitLab, Argo CD, apply Application
-gitlab-bootstrap.sh   →  After GitLab deploy: ensure root / password123 (run by setup.sh)
+gitlab-bootstrap.sh   →  After GitLab deploy: ensure root / RootIot42Bonus! (run by setup.sh)
 gitlab.yaml           →  GitLab CE in namespace gitlab (PVC, Secret, Deployment, Service)
 argocd-app-gitlab.yaml → Argo CD: sync from http://gitlab.../root/playground.git
 deployment.yaml       →  Pushed into GitLab project playground/manifests/
@@ -181,7 +181,7 @@ If `User.count` is `0`, runs `gitlab-rake db:seed` to create initial data includ
 Rails runner inside the pod:
 
 - Ensures `root` has a **UserNamespace** linked to the default **Organization** (required on newer GitLab).
-- Sets password to **`password123`** with `save(validate: false)` (bypasses “weak password” policy that blocks `gitlab-rake password:reset`).
+- Sets password to **`RootIot42Bonus!`** with `save(validate: false)` (bypasses “weak password” policy that blocks `gitlab-rake password:reset`).
 
 Prints `root ok` on success.
 
@@ -212,7 +212,7 @@ Multi-document manifest (four resources separated by `---`).
 
 | Field | Value | Meaning |
 |-------|-------|---------|
-| `data.password` | base64 `password123` | Documents intended root password; omnibus also sets it via `GITLAB_OMNIBUS_CONFIG` |
+| `data.password` | base64 `RootIot42Bonus!` | Documents intended root password; omnibus also sets it via `GITLAB_OMNIBUS_CONFIG` |
 
 ### Deployment `gitlab`
 
@@ -220,7 +220,7 @@ Multi-document manifest (four resources separated by `---`).
 |------|--------|
 | Image | `gitlab/gitlab-ce:latest` (official CE; subject requirement) |
 | `GITLAB_OMNIBUS_CONFIG` | `external_url` = in-cluster HTTP URL Argo CD and git use |
-| | `initial_root_password` = `password123` (first clean install only) |
+| | `initial_root_password` = `RootIot42Bonus!` (first clean install only) |
 | | HTTP on port 80, HTTPS disabled for simplicity |
 | | Prometheus and KAS off — lower memory (no `grafana` key on latest CE) |
 | | `sidekiq` concurrency 3, `puma` 1 worker, smaller PostgreSQL buffers |
@@ -266,7 +266,7 @@ Same as Part 3: in-cluster API, namespace **`dev`**.
 
 ### Private repo / credentials
 
-If the GitLab project is private, register the repo in Argo CD with `root` / `password123` (see [`../../bonus/README.md`](../../bonus/README.md) and [`checklist.md`](checklist.md)). Public/Internal projects often work without extra repo secrets.
+If the GitLab project is private, register the repo in Argo CD with `root` / `RootIot42Bonus!` (see [`../../bonus/README.md`](../../bonus/README.md) and [`checklist.md`](checklist.md)). Public/Internal projects often work without extra repo secrets.
 
 ---
 

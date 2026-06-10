@@ -10,7 +10,11 @@ File details: [`config-guide.md`](config-guide.md). School RAM limits: [`../setu
 
 k3d cluster → GitLab inside cluster → you push `deployment.yaml` to GitLab → Argo CD syncs from GitLab → app on `http://localhost:9888`.
 
-**`setup.sh` does NOT create the GitLab project or push manifests.** You must do steps 5–7 yourself.
+**Automatic:** cluster, GitLab, Argo CD, user `root` / `RootIot42Bonus!` (`setup.sh` + `gitlab-bootstrap.sh`).
+
+**Manual (subject):** create GitLab project **`playground`**, `git push` manifests, `argocd repo add` once.
+
+On defense you do **not** patch code or run Rails by hand — re-run `bash scripts/gitlab-bootstrap.sh` if bootstrap failed.
 
 ---
 
@@ -27,7 +31,7 @@ Credentials used later:
 
 | Service | User | Password |
 |---------|------|----------|
-| GitLab | `root` | `password123` |
+| GitLab | `root` | `RootIot42Bonus!` |
 | Argo CD | `admin` | printed by setup → `/tmp/argocd-password` |
 
 GitLab project name must be exactly **`playground`** (matches `confs/argocd-app-gitlab.yaml`).
@@ -84,7 +88,7 @@ If bootstrap failed earlier, retry when pod is Ready:
 bash scripts/gitlab-bootstrap.sh
 ```
 
-**Expected:** `Login: root / password123`
+**Expected:** `Login: root / RootIot42Bonus!`
 
 ---
 
@@ -99,7 +103,7 @@ Leave this terminal open.
 In browser (inside VM or forwarded): **http://localhost:8181**
 
 - Login: `root`
-- Password: `password123`
+- Password: `RootIot42Bonus!`
 
 ---
 
@@ -131,7 +135,7 @@ git remote add origin http://localhost:8181/root/playground.git
 git push -u origin main
 ```
 
-When prompted: user **`root`**, password **`password123`**.
+When prompted: user **`root`**, password **`RootIot42Bonus!`**.
 
 **Expected:** push succeeds, no error.
 
@@ -152,7 +156,7 @@ argocd login localhost:9090 --username admin \
   --password "$(cat /tmp/argocd-password)" --insecure
 
 argocd repo add http://gitlab.gitlab.svc.cluster.local/root/playground.git \
-  --username root --password password123
+  --username root --password RootIot42Bonus!
 ```
 
 **Expected:** `Repository added` or already exists.
@@ -234,6 +238,8 @@ curl -s http://localhost:9888/
 |---------|-----|
 | OOM / host freeze | Bonus too heavy for 4096 MB `iot` — use 8 GB guest or run bonus elsewhere |
 | `GitLab not ready` after setup | `kubectl get pods -n gitlab -w` → when Ready: `bash scripts/gitlab-bootstrap.sh` |
+| `db:seed` exit code 1 | Re-run `bash scripts/gitlab-bootstrap.sh` — creates `root` automatically |
+| `NO root` after bootstrap | Re-run `bash scripts/gitlab-bootstrap.sh` (not manual Rails) |
 | `git push` fails | Port-forward step 4 running? Project name exactly `playground`? |
 | Argo CD `OutOfSync` / `Unknown` | Did step 7 (`argocd repo add`)? Wait 3 min |
 | `curl 9888` connection refused | `k3d cluster list` — is `iot-bonus` running? |

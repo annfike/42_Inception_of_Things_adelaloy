@@ -51,8 +51,8 @@ The GitLab instance is configured with reduced resource usage to run in a develo
 - Sidekiq limited to 3 concurrent jobs
 - PostgreSQL shared buffers reduced to 128MB
 - Puma limited to 1 worker process
-- Initial root password: `password123`
-- `scripts/gitlab-bootstrap.sh` seeds DB and ensures `root` / `password123` after deploy
+- Initial root password: `RootIot42Bonus!`
+- `scripts/gitlab-bootstrap.sh` seeds DB and ensures `root` / `RootIot42Bonus!` after deploy
 
 ## File Structure
 
@@ -91,7 +91,7 @@ The script installs:
 2. Creates a K3d cluster with port mappings
 3. Creates `argocd`, `dev`, and `gitlab` namespaces
 4. Deploys GitLab CE in the `gitlab` namespace (first boot often **15–25 minutes**)
-5. Runs `gitlab-bootstrap.sh` (root account + `password123`; re-run if `GitLab not ready`)
+5. Runs `gitlab-bootstrap.sh` (root account + `RootIot42Bonus!`; re-run if `GitLab not ready`)
 6. Installs Argo CD in the `argocd` namespace
 7. Prints access information
 
@@ -107,7 +107,7 @@ open http://localhost:8181
 
 Login credentials:
 - **Username:** `root`
-- **Password:** `password123`
+- **Password:** `RootIot42Bonus!`
 
 If login fails after setup, run:
 
@@ -173,7 +173,7 @@ git add .
 git commit -m "Initial deployment with v1"
 git remote add origin http://localhost:8181/root/playground.git
 git push -u origin main
-# Enter: root / password123
+# Enter: root / RootIot42Bonus!
 ```
 
 ### 5. Configure Argo CD to use GitLab
@@ -200,7 +200,7 @@ argocd login localhost:9080 --username admin --password $(cat /tmp/argocd-passwo
 
 # Add the GitLab repo
 argocd repo add http://gitlab.gitlab.svc.cluster.local/root/playground.git \
-  --username root --password password123
+  --username root --password RootIot42Bonus!
 ```
 
 ### 6. Access Argo CD
@@ -264,7 +264,7 @@ The `gitlab.yaml` creates:
 | Resource | Purpose |
 |----------|---------|
 | **PersistentVolumeClaim** | 10Gi storage for GitLab data (repos, uploads, etc.) |
-| **Secret** | Initial root password (`password123` base64-encoded) |
+| **Secret** | Initial root password (`RootIot42Bonus!` base64-encoded) |
 | **Deployment** | GitLab CE container with optimized settings |
 | **Service** (ClusterIP) | Internal access on ports 80, 443, 22 |
 
@@ -275,5 +275,5 @@ gitlab_kas['enable'] = false
 sidekiq['max_concurrency'] = 3
 postgresql['shared_buffers'] = "128MB"
 puma['worker_processes'] = 1
-gitlab_rails['initial_root_password'] = 'password123'
+gitlab_rails['initial_root_password'] = 'RootIot42Bonus!'
 ```

@@ -367,7 +367,7 @@ Then follow [`../../bonus/README.md`](../../bonus/README.md) and [`../bonus/chec
 | Argo CD | https://localhost:9080 (insecure) |
 | GitLab | http://localhost:8181 (after port-forward) |
 
-GitLab login: `root` / `password123` (bootstrap fixes root if first boot failed).
+GitLab login: `root` / `RootIot42Bonus!` (bootstrap creates root if first boot failed).
 
 ---
 

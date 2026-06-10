@@ -2,6 +2,7 @@
 set -euo pipefail
 
 GITLAB_NS="${GITLAB_NS:-gitlab}"
+GITLAB_ROOT_PASSWORD="${GITLAB_ROOT_PASSWORD:-RootIot42Bonus!}"
 
 info() { echo ">>> $1"; }
 warn() { echo ">>> $1"; }
@@ -35,36 +36,68 @@ wait_gitlab() {
   return 1
 }
 
-seed_if_empty() {
-  local count
-  count=$(kubectl exec -n "$GITLAB_NS" deployment/gitlab -- gitlab-rails runner 'puts User.count' 2>/dev/null | tail -1)
-  if [ "$count" = "0" ]; then
-    info "Seeding database..."
-    kubectl exec -n "$GITLAB_NS" deployment/gitlab -- gitlab-rake db:seed
-  fi
+root_exists() {
+  kubectl exec -n "$GITLAB_NS" deployment/gitlab -- gitlab-rails runner \
+    "exit(User.find_by(username: 'root') ? 0 : 1)" 2>/dev/null
 }
 
-fix_root() {
-  kubectl exec -n "$GITLAB_NS" deployment/gitlab -- gitlab-rails runner "$(cat <<'RUBY'
-u = User.find_by(username: 'root')
-exit 1 unless u
-o = Organizations::Organization.first
-unless u.namespace
-  n = Namespaces::UserNamespace.find_or_create_by!(path: 'root') do |x|
-    x.name = 'root'
-    x.owner = u
-    x.organization = o
+ensure_root() {
+  kubectl exec -n "$GITLAB_NS" deployment/gitlab -- gitlab-rails runner "$(cat <<RUBY
+pw = '${GITLAB_ROOT_PASSWORD}'
+begin
+  u = User.find_by(username: 'root')
+  unless u
+    org = Organizations::Organization.first
+    if org.nil?
+      org = Organizations::Organization.create!(
+        name: 'GitLab',
+        path: 'gitlab',
+        visibility_level: Gitlab::VisibilityLevel::PUBLIC
+      )
+    end
+    u = User.new(
+      name: 'Administrator',
+      username: 'root',
+      email: 'admin@example.com',
+      admin: true,
+      confirmed_at: Time.current
+    )
+    u.password = pw
+    u.password_confirmation = pw
+    u.save!(validate: false)
+    ns = Namespaces::UserNamespace.create!(
+      name: 'root',
+      path: 'root',
+      owner: u,
+      organization: org
+    )
+    u.update!(namespace: ns)
+    puts 'created root'
+  else
+    unless u.namespace
+      org = Organizations::Organization.first
+      if org
+        ns = Namespaces::UserNamespace.find_or_create_by!(path: 'root') do |x|
+          x.name = 'root'
+          x.owner = u
+          x.organization = org
+        end
+        u.update!(namespace: ns)
+      end
+    end
+    unless u.valid_password?(pw)
+      u.password = pw
+      u.password_confirmation = pw
+      u.save!(validate: false)
+    end
+    puts 'root ok'
   end
-  u.update!(namespace: n)
+rescue StandardError => e
+  puts "ERROR: \#{e.class}: \#{e.message}"
+  exit 1
 end
-unless u.valid_password?('password123')
-  u.password = 'password123'
-  u.password_confirmation = 'password123'
-  u.save(validate: false)
-end
-puts 'root ok'
 RUBY
-)"
+)" || return 1
 }
 
 main() {
@@ -73,9 +106,11 @@ main() {
     gitlab_diagnose
     exit 1
   }
-  seed_if_empty
-  fix_root
-  info "Login: root / password123"
+  ensure_root || {
+    gitlab_diagnose
+    exit 1
+  }
+  info "Login: root / ${GITLAB_ROOT_PASSWORD}"
 }
 
 main "$@"

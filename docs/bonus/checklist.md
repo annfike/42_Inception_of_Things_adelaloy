@@ -120,9 +120,20 @@ Do **not** push anything from the GitLab UI yet — use terminal in step 6.
 
 ## 6) Push manifests to GitLab (terminal 2)
 
+From the **bonus** directory (same tree as `setup.sh`):
+
 ```bash
+cd ~/42_Inception_of_Things_adelaloy/bonus
+
+MANIFEST=confs/manifests/deployment.yaml
+if [ ! -f "$MANIFEST" ]; then
+  echo "Missing $MANIFEST — run: git pull"
+  echo "Or copy from p3 (same file):"
+  cp ../p3/confs/manifests/deployment.yaml "$MANIFEST"
+fi
+
 mkdir -p /tmp/gitlab-repo/manifests
-cp ~/42_Inception_of_Things_adelaloy/bonus/confs/manifests/deployment.yaml /tmp/gitlab-repo/manifests/
+cp "$MANIFEST" /tmp/gitlab-repo/manifests/
 
 cd /tmp/gitlab-repo
 git init

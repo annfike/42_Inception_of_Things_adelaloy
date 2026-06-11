@@ -106,15 +106,9 @@ Login: **root** / **RootIot42Bonus!**
 
 ---
 
-## 6) Argo CD repo add — terminal 3 + 4
+## 6) Argo CD repo add
 
-**Terminal 3:**
-
-```bash
-kubectl port-forward svc/argocd-server -n argocd 9080:443
-```
-
-**Terminal 4:**
+Argo CD UI is on **http://localhost:9080** (k3d maps port 9080 — do not port-forward to 9080).
 
 ```bash
 argocd login localhost:9080 --username admin \

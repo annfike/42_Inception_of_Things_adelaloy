@@ -20,7 +20,7 @@ k3d cluster → Argo CD watches **public GitHub** → syncs `p3/confs/manifests`
 |-------------|-------|
 | p1/p2 Vagrant VMs stopped | `cd p2 && vagrant halt -f` (frees RAM on nested `iot`) |
 | Docker works | `docker ps` |
-| GitHub repo exists and is **public** | `https://github.com/annfike/42_Inception_of_Things_adelaloy.git` |
+| GitHub repo exists and is **public** | Your fork on GitHub; `repoURL` in `p3/confs/argocd-app.yaml` must match it |
 | Path on GitHub | `p3/confs/manifests/deployment.yaml` must exist on **`main`** |
 | Cluster name | **`iot`** (not `iot-bonus`) |
 
@@ -28,7 +28,7 @@ Argo CD reads (from `p3/confs/argocd-app.yaml`):
 
 | Field | Value |
 |-------|-------|
-| `repoURL` | `https://github.com/annfike/42_Inception_of_Things_adelaloy.git` |
+| `repoURL` | Your public fork (same as in `confs/argocd-app.yaml`) |
 | `path` | `p3/confs/manifests` |
 
 If your fork uses a different URL — change `argocd-app.yaml` **before** setup.
@@ -141,14 +141,28 @@ Leave port-forward running while using the UI.
 
 ## 6) GitOps demo — v1 → v2 (defense)
 
-You need **push access** to the GitHub repo Argo CD watches.
+Argo CD reads **`repoURL`** from `p3/confs/argocd-app.yaml` (path `p3/confs/manifests`).  
+Push must go to **that same repo** on **`main`**, or sync will not update the app.
+
+| What | Where |
+|------|--------|
+| Repo Argo CD watches | `p3/confs/argocd-app.yaml` → field `repoURL` |
+| File you change | `p3/confs/manifests/deployment.yaml` |
+| Where you run `git push` | Root of your clone (`~/42_Inception_of_Things_adelaloy`) |
+| Remote | `origin` → your **public** GitHub fork (you must have push access) |
+
+**Once, before `setup.sh`:** set `repoURL` in `confs/argocd-app.yaml` to your fork, ensure `p3/confs/manifests/deployment.yaml` is on GitHub `main`, then run setup.
+
+**Demo (cluster already running):**
 
 ```bash
-cd ~/42_Inception_of_Things_adelaloy/p3/confs/manifests
-sed -i 's/wil42\/playground:v1/wil42\/playground:v2/g' deployment.yaml
-git add deployment.yaml
+cd ~/42_Inception_of_Things_adelaloy
+
+sed -i 's/wil42\/playground:v1/wil42\/playground:v2/g' p3/confs/manifests/deployment.yaml
+
+git add p3/confs/manifests/deployment.yaml
 git commit -m "Update to v2"
-git push
+git push origin main
 ```
 
 Wait **1–3 min**, then:
@@ -160,11 +174,14 @@ curl -s http://localhost:8888/
 
 **Expected:** `{"status":"ok", "message": "v2"}`
 
-To revert for next demo:
+Revert:
 
 ```bash
-sed -i 's/wil42\/playground:v2/wil42\/playground:v1/g' deployment.yaml
-git add deployment.yaml && git commit -m "Revert to v1" && git push
+cd ~/42_Inception_of_Things_adelaloy
+sed -i 's/wil42\/playground:v2/wil42\/playground:v1/g' p3/confs/manifests/deployment.yaml
+git add p3/confs/manifests/deployment.yaml
+git commit -m "Revert to v1"
+git push origin main
 ```
 
 ---

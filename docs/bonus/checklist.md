@@ -121,9 +121,6 @@ kubectl port-forward svc/argocd-server -n argocd 9090:443
 **Terminal 4:**
 
 ```bash
-argocd logout localhost:9090 2>/dev/null || true
-argocd logout localhost:9080 2>/dev/null || true
-
 argocd login localhost:9090 --username admin \
   --password "$(cat /tmp/argocd-password)" --insecure
 

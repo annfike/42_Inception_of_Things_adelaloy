@@ -21,8 +21,8 @@ The bonus part extends Part 3 by replacing the public GitHub repository with a *
 │                                                                        │
 └────────────────────────────────────────────────────────────────────────┘
          │                         │                         │
-         │ port-forward            │ port-forward            │ port-forward
-         ▼ :8181 → :80              ▼ :9080 → :443           ▼ :9888→:8888
+         │ port-forward            │ k3d LB                  │ k3d LB
+         ▼ :8181 → :80              ▼ :9080 → :80            ▼ :9888→:8888
     GitLab Web UI              Argo CD UI              Application API
 ```
 
@@ -192,7 +192,9 @@ kubectl apply -f confs/argocd-app-gitlab.yaml
 
 If the repository is private, register it in Argo CD first:
 ```bash
-argocd login localhost:9080 --username admin --password $(cat /tmp/argocd-password) --insecure
+kubectl port-forward svc/argocd-server -n argocd 9090:443 &
+
+argocd login localhost:9090 --username admin --password $(cat /tmp/argocd-password) --insecure
 
 argocd repo add http://gitlab.gitlab.svc.cluster.local/root/playground.git \
   --username root --password RootIot42Bonus!

@@ -231,6 +231,8 @@ print_summary() {
   echo "  Argo CD UI: http://localhost:9080"
   echo "              Username: admin"
   echo "              Password: $(cat /tmp/argocd-password 2>/dev/null || echo 'see above')"
+  echo "  Argo CD CLI: kubectl port-forward svc/argocd-server -n argocd 9090:443"
+  echo "               argocd login localhost:9090 --username admin --insecure"
   echo ""
   echo "  Application: http://localhost:9888"
   echo ""

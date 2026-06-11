@@ -106,12 +106,25 @@ Login: **root** / **RootIot42Bonus!**
 
 ---
 
-## 6) Argo CD repo add
+## 6) Argo CD repo add — terminal 3 + 4
 
-Argo CD UI is on **http://localhost:9080** (k3d maps port 9080 — do not port-forward to 9080).
+**Browser UI:** http://localhost:9080 (`admin` / `/tmp/argocd-password`). Do not port-forward to 9080.
+
+**CLI** needs a separate port (gRPC does not work on the k3d HTTP mapping).
+
+**Terminal 3** (keep open):
 
 ```bash
-argocd login localhost:9080 --username admin \
+kubectl port-forward svc/argocd-server -n argocd 9090:443
+```
+
+**Terminal 4:**
+
+```bash
+argocd logout localhost:9090 2>/dev/null || true
+argocd logout localhost:9080 2>/dev/null || true
+
+argocd login localhost:9090 --username admin \
   --password "$(cat /tmp/argocd-password)" --insecure
 
 argocd repo add http://gitlab.gitlab.svc.cluster.local/root/playground.git \

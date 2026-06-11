@@ -181,6 +181,9 @@ install_argocd() {
   kubectl wait --for=condition=available --timeout=120s \
     deployment/argocd-server -n "$ARGOCD_NS"
 
+  kubectl patch svc argocd-server -n "$ARGOCD_NS" \
+    -p '{"spec":{"type":"LoadBalancer"}}' --type=merge
+
   local password
   password=$(kubectl -n "$ARGOCD_NS" get secret argocd-initial-admin-secret \
     -o jsonpath="{.data.password}" | base64 -d)
@@ -223,10 +226,9 @@ print_summary() {
   echo "  GitLab:     kubectl port-forward svc/gitlab -n gitlab 8181:80"
   echo "              then visit http://localhost:8181"
   echo "              Username: root"
-  echo "              Password: kubectl get secret gitlab-initial-root-password -n gitlab -o jsonpath='{.data.password}' | base64 -d"
+  echo "              Password: RootIot42Bonus!"
   echo ""
-  echo "  Argo CD UI: kubectl port-forward svc/argocd-server -n argocd 9080:443 &"
-  echo "              then visit http://localhost:9080"
+  echo "  Argo CD UI: http://localhost:9080"
   echo "              Username: admin"
   echo "              Password: $(cat /tmp/argocd-password 2>/dev/null || echo 'see above')"
   echo ""

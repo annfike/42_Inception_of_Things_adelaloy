@@ -1,20 +1,23 @@
 # Bonus — GitLab + Argo CD (Setup & Verification)
 
-Same Linux VM as Part 3 (`iot` at school, or your defense VM). Cluster name: **`iot-bonus`** (not `iot` from p3).
+**Defense:** MacBook → **UTM** → Ubuntu VM. All commands **inside the VM**. Cluster: **`iot-bonus`**. VM prep: [`../setup/vm-setup.md`](../setup/vm-setup.md).
 
-File details: [`config-guide.md`](config-guide.md). School RAM limits: [`../setup/school-defense.md`](../setup/school-defense.md) §6.
+File details: [`config-guide.md`](config-guide.md).
 
 ---
 
 ## What you are building (one sentence)
 
-k3d cluster → GitLab inside cluster → you push `deployment.yaml` to GitLab → Argo CD syncs from GitLab → app on `http://localhost:9888`.
+k3d cluster → GitLab inside cluster → you push `deployment.yaml` to GitLab → Argo CD syncs → app on `http://localhost:9888`.
 
-**Automatic:** cluster, GitLab, Argo CD, user `root` / `RootIot42Bonus!` (`setup.sh` + `gitlab-bootstrap.sh`).
+**Automatic:** cluster, GitLab, Argo CD (`setup.sh` + `gitlab-bootstrap.sh`).
 
-**Manual (subject):** create GitLab project **`playground`**, `git push` manifests, `argocd repo add` once.
+**Manual:** create GitLab project **`playground`**, `git push`, `argocd repo add` once.
 
-On defense you do **not** patch code or run Rails by hand — re-run `bash scripts/gitlab-bootstrap.sh` if bootstrap failed.
+| Service | User | Password |
+|---------|------|----------|
+| GitLab | `root` | `RootIot42Bonus!` |
+| Argo CD | `admin` | `/tmp/argocd-password` |
 
 ---
 
@@ -22,67 +25,27 @@ On defense you do **not** patch code or run Rails by hand — re-run `bash scrip
 
 | Requirement | Check |
 |-------------|-------|
-| Part 3 cluster stopped | `k3d cluster delete iot` (frees RAM) |
-| p1/p2 Vagrant VMs stopped | `cd p2 && vagrant halt -f` |
-| Enough RAM | Bonus needs **~5–8 GB** inside VM — **tight on 4096 MB `iot`** |
-| Project path | `~/42_Inception_of_Things_adelaloy/bonus` |
-
-Credentials used later:
-
-| Service | User | Password |
-|---------|------|----------|
-| GitLab | `root` | `RootIot42Bonus!` |
-| Argo CD | `admin` | printed by setup → `/tmp/argocd-password` |
-
-GitLab project name must be exactly **`playground`** (matches `confs/argocd-app-gitlab.yaml`).
+| p3 cluster stopped | `k3d cluster delete iot` |
+| Docker in VM | `docker ps` works |
+| VM RAM | **16 GB** guest RAM recommended (GitLab + bonus); see vm-setup |
 
 ---
 
-## 1) Delete Part 3 cluster (if you just ran p3)
-
-Inside your Linux VM:
+## 1) Run setup
 
 ```bash
-k3d cluster delete iot
-k3d cluster list
-```
-
-**Expected:** only `iot-bonus` or empty — no `iot`.
-
----
-
-## 2) Run setup script
-
-```bash
+k3d cluster delete iot 2>/dev/null || true
 cd ~/42_Inception_of_Things_adelaloy/bonus
 bash scripts/setup.sh
 ```
 
-This installs tools (if missing), creates cluster **`iot-bonus`**, namespaces `gitlab` / `argocd` / `dev`, deploys GitLab + Argo CD, runs `gitlab-bootstrap.sh`, applies `confs/argocd-app-gitlab.yaml`.
-
 **Time:** first run **30–60 min** (GitLab is slow).
-
-At the end you should see `BONUS SETUP COMPLETE` and Argo CD password on screen.
-
-Save password:
 
 ```bash
 cat /tmp/argocd-password
 ```
 
----
-
-## 3) Wait until GitLab pod is Ready
-
-If setup finished but GitLab was still starting:
-
-```bash
-kubectl get pods -n gitlab -w
-```
-
-**Expected:** `gitlab-...` → **Running**, **READY 1/1** (can take **15–30 min** after pod appears).
-
-If bootstrap failed earlier, retry when pod is Ready:
+If bootstrap failed but GitLab pod is Ready:
 
 ```bash
 bash scripts/gitlab-bootstrap.sh
@@ -90,50 +53,54 @@ bash scripts/gitlab-bootstrap.sh
 
 **Expected:** `Login: root / RootIot42Bonus!`
 
+If `kubectl get svc -n argocd` is empty (Argo CD missing after failed bootstrap):
+
+```bash
+kubectl apply --server-side -n argocd \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
+kubectl apply -f confs/argocd-app-gitlab.yaml
+```
+
 ---
 
-## 4) Open GitLab in browser (terminal 1 — keep running)
+## 2) GitLab Ready
+
+```bash
+kubectl get pods -n gitlab -w
+```
+
+**Expected:** **Running 1/1**.
+
+---
+
+## 3) GitLab in browser — terminal 1 (keep open)
 
 ```bash
 kubectl port-forward svc/gitlab -n gitlab 8181:80
 ```
 
-Leave this terminal open.
-
-In browser (inside VM or forwarded): **http://localhost:8181**
-
-- Login: `root`
-- Password: `RootIot42Bonus!`
+Browser **inside VM** (Firefox): **http://localhost:8181** — `root` / `RootIot42Bonus!`
 
 ---
 
-## 5) Create GitLab project (browser only)
+## 4) Create project (browser)
 
 1. **New project** → **Create blank project**
-2. Project name: **`playground`** (exactly)
-3. Visibility: **Internal** or **Public**
-4. **Create project**
-
-Do **not** push anything from the GitLab UI yet — use terminal in step 6.
+2. Name: **`playground`** (exactly)
+3. **Uncheck** “Initialize repository with a README”
+4. Visibility: **Internal** or **Public**
 
 ---
 
-## 6) Push manifests to GitLab (terminal 2)
+## 5) Push manifests — terminal 2
 
-From the **bonus** directory (same tree as `setup.sh`):
+Port-forward from step 3 must stay running.
 
 ```bash
 cd ~/42_Inception_of_Things_adelaloy/bonus
-
-MANIFEST=confs/manifests/deployment.yaml
-if [ ! -f "$MANIFEST" ]; then
-  echo "Missing $MANIFEST — run: git pull"
-  echo "Or copy from p3 (same file):"
-  cp ../p3/confs/manifests/deployment.yaml "$MANIFEST"
-fi
-
 mkdir -p /tmp/gitlab-repo/manifests
-cp "$MANIFEST" /tmp/gitlab-repo/manifests/
+cp confs/manifests/deployment.yaml /tmp/gitlab-repo/manifests/
 
 cd /tmp/gitlab-repo
 git init
@@ -146,65 +113,49 @@ git remote add origin http://localhost:8181/root/playground.git
 git push -u origin main
 ```
 
-When prompted: user **`root`**, password **`RootIot42Bonus!`**.
+Login: **root** / **RootIot42Bonus!**
 
-**Expected:** push succeeds, no error.
+If `rejected (fetch first)`: `git push -u origin main --force`
 
 ---
 
-## 7) Register GitLab repo in Argo CD (terminal 3)
+## 6) Argo CD repo add — terminal 3 + 4
 
-Argo CD must authenticate to GitLab (especially if project is private).
+**Terminal 3:**
 
 ```bash
 kubectl port-forward svc/argocd-server -n argocd 9090:443
 ```
 
-Leave running. In **another** terminal:
+**Terminal 4:**
 
 ```bash
 argocd login localhost:9090 --username admin \
   --password "$(cat /tmp/argocd-password)" --insecure
 
 argocd repo add http://gitlab.gitlab.svc.cluster.local/root/playground.git \
-  --username root --password RootIot42Bonus!
+  --username root --password 'RootIot42Bonus!'
 ```
 
-**Expected:** `Repository added` or already exists.
-
-Wait **1–3 min** for auto-sync.
+Wait **1–3 min** for sync.
 
 ---
 
-## 8) Verify (copy-paste block)
+## 7) Verify
 
 ```bash
-k3d cluster list
-kubectl get ns
-kubectl get pods -n gitlab
-kubectl get pods -n argocd
 kubectl get applications -n argocd
 kubectl get pods -n dev
 curl -s http://localhost:9888/
 ```
 
-**Expected:**
-
-| Check | Expected |
-|-------|----------|
-| `k3d cluster list` | `iot-bonus` running |
-| `kubectl get ns` | `argocd`, `dev`, `gitlab` Active |
-| GitLab pod | Running 1/1 |
-| Argo CD pods | Running |
-| Application `wil-playground` | **Synced**, **Healthy** |
-| Pod in `dev` | Running 1/1 |
-| `curl localhost:9888` | `{"status":"ok", "message": "v1"}` |
+**Expected:** `"message": "v1"`
 
 ---
 
-## 9) Defense demo — GitOps v1 → v2
+## 8) Demo v1 → v2
 
-Change image tag in GitLab repo and push:
+Port-forward step 3 running.
 
 ```bash
 cd /tmp/gitlab-repo
@@ -214,67 +165,52 @@ git commit -m "Update to v2"
 git push
 ```
 
-Wait **1–3 min**, then:
+Wait **1–3 min**:
+
+```bash
+curl -s http://localhost:9888/
+```
+
+**Expected:** `"message": "v2"`
+
+---
+
+## 9) Defense script (evaluator)
+
+1. Git remote = **GitLab in cluster**, not GitHub
+2. Push to GitLab → Argo CD syncs → curl updates
 
 ```bash
 kubectl get applications -n argocd
 curl -s http://localhost:9888/
 ```
 
-**Expected:** `{"status":"ok", "message": "v2"}`
-
 ---
 
-## 10) Quick defense script (evaluator)
-
-Say aloud:
-
-1. Bonus = p3 GitOps, but Git remote is **GitLab inside the cluster**, not GitHub
-2. Argo CD clones `http://gitlab.gitlab.svc.cluster.local/root/playground.git`, path `manifests`
-3. Push to GitLab → Argo CD syncs → app updates
-
-Commands:
-
-```bash
-kubectl get applications -n argocd
-kubectl get pods -n dev
-curl -s http://localhost:9888/
-```
-
----
-
-## 11) Troubleshooting
+## 10) Troubleshooting
 
 | Problem | Fix |
 |---------|-----|
-| OOM / host freeze | Bonus too heavy for 4096 MB `iot` — use 8 GB guest or run bonus elsewhere |
-| `GitLab not ready` after setup | `kubectl get pods -n gitlab -w` → when Ready: `bash scripts/gitlab-bootstrap.sh` |
-| `db:seed` exit code 1 | Re-run `bash scripts/gitlab-bootstrap.sh` — creates `root` automatically |
-| `NO root` after bootstrap | Re-run `bash scripts/gitlab-bootstrap.sh` (not manual Rails) |
-| `git push` fails | Port-forward step 4 running? Project name exactly `playground`? |
-| Argo CD `OutOfSync` / `Unknown` | Did step 7 (`argocd repo add`)? Wait 3 min |
-| `curl 9888` connection refused | `k3d cluster list` — is `iot-bonus` running? |
-| Port 9090 busy | Use another local port: `kubectl port-forward svc/argocd-server -n argocd 9091:443` and login to `9091` |
-| p3 still running | `k3d cluster delete iot` — two clusters = not enough RAM |
+| GitLab slow / OOM | UTM guest **16 GB** RAM; close other k3d clusters |
+| No `argocd-server` svc | See step 1 — manual `kubectl apply` block |
+| Bootstrap failed | `bash scripts/gitlab-bootstrap.sh` when GitLab pod Ready |
+| `git push` fails | Terminal 1 port-forward running? Project name `playground`? |
+| Argo CD not syncing | Step 6 `argocd repo add` done? |
 
 ---
 
-## 12) Cleanup
+## 11) Cleanup
 
 ```bash
 k3d cluster delete iot-bonus
 ```
 
-**Expected:** cluster gone, `k3d cluster list` empty.
-
 ---
 
-## Terminal cheat sheet (3 windows)
+## Terminals during steps 3–6
 
-| Terminal | Command | Purpose |
-|----------|---------|---------|
-| 1 | `kubectl port-forward svc/gitlab -n gitlab 8181:80` | GitLab UI + git push |
-| 2 | work here | setup, verify, git push, curl |
-| 3 | `kubectl port-forward svc/argocd-server -n argocd 9090:443` | `argocd login` / UI |
-
-Steps 4–7 need terminals 1 and 3 running at the same time.
+| Terminal | Command |
+|----------|---------|
+| 1 | `kubectl port-forward svc/gitlab -n gitlab 8181:80` |
+| 2 | setup, verify, git push to GitLab |
+| 3 | `kubectl port-forward svc/argocd-server -n argocd 9090:443` |

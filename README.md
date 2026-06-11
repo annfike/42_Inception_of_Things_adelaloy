@@ -21,12 +21,12 @@ You progress from a 2-node K3s cluster (Vagrant) to Ingress routing, then K3d + 
 
 ```
 p1/p2 (Vagrant + K3s)          p3 (K3d + Argo CD)              bonus (+ GitLab)
-┌─────┐  ┌─────┐               ┌──────────┐  GitHub          ┌────────┐  ┌────────┐
-│ S   │──│ SW  │               │  argocd  │◄──(public)──      │ gitlab │◄─│ argocd │
-└─────┘  └─────┘               │    │     │                   │   │    │   │    │
-                               │    ▼     │                   │    └───┼───┘    │
-p2: Ingress → 3 apps          │   dev    │                   │   dev (app)      │
-                               └──────────┘                   └──────────────────┘
+┌─────┐  ┌─────┐               ┌──────────┐  GitHub           ┌────────┐   ┌────────┐
+│ S   │──│ SW  │               │  argocd  │◄──(public)──----  │ gitlab │◄─ │ argocd │
+└─────┘  └─────┘               │    │     │                   │   │    │   │        │
+                               │    ▼     │                   │   └──-─┼───┘        │
+p2: Ingress → 3 apps           │   dev    │                   │   dev (app)         │
+                               └──────────┘                   └───────────────---───┘
 ```
 
 ---
@@ -168,7 +168,7 @@ cat ~/.ssh/id_ed25519.pub
 Add the public key to GitHub → **Settings → SSH keys**.
 
 ```bash
-cd ~/42_Inception_of_Things_adelaloy   # or /mnt/utm/42_Inception_of_Things
+cd ~/42_Inception_of_Things_adelaloy
 git remote set-url origin git@github.com:YOUR_LOGIN/YOUR_REPO.git
 ssh -T git@github.com
 git push origin main

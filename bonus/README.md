@@ -192,23 +192,15 @@ kubectl apply -f confs/argocd-app-gitlab.yaml
 
 If the repository is private, register it in Argo CD first:
 ```bash
-# Port-forward Argo CD
-kubectl port-forward svc/argocd-server -n argocd 9080:443 &
-
-# Login to Argo CD CLI
 argocd login localhost:9080 --username admin --password $(cat /tmp/argocd-password) --insecure
 
-# Add the GitLab repo
 argocd repo add http://gitlab.gitlab.svc.cluster.local/root/playground.git \
   --username root --password RootIot42Bonus!
 ```
 
 ### 6. Access Argo CD
 
-```bash
-kubectl port-forward svc/argocd-server -n argocd 9080:443 &
-open http://localhost:9080
-```
+Open **http://localhost:9080** (k3d maps host port 9080 to the Argo CD LoadBalancer).
 
 Login:
 - **Username:** `admin`

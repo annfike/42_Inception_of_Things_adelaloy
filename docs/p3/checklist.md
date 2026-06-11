@@ -96,11 +96,9 @@ curl -s http://localhost:8888/
 
 ## 5) Argo CD UI (optional)
 
-```bash
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-```
+Как в [`../../p3/README.md`](../../p3/README.md):
 
-Browser: **http://localhost:8080** — user `admin`, password from `/tmp/argocd-password`.
+**http://localhost:8080** — `admin` / `/tmp/argocd-password`
 
 ---
 

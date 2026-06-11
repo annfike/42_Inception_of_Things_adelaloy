@@ -290,7 +290,7 @@ docker ps
 VS Code on amd64 guest (Emulate or Intel Virtualize):
 
 ```bash
-wget -O /tmp/code.deb 'https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-amd64'
+wget -O /tmp/code.deb 'https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64'
 sudo apt install -y /tmp/code.deb
 ```
 

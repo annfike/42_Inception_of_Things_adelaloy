@@ -150,6 +150,9 @@ configure_argocd() {
   kubectl wait --for=condition=available --timeout=120s \
     deployment/argocd-server -n "$ARGOCD_NS"
 
+  kubectl patch svc argocd-server -n "$ARGOCD_NS" \
+    -p '{"spec":{"type":"LoadBalancer"}}' --type=merge
+
   local password
   password=$(kubectl -n "$ARGOCD_NS" get secret argocd-initial-admin-secret \
     -o jsonpath="{.data.password}" | base64 -d)
@@ -188,9 +191,6 @@ print_summary() {
   echo "  Password:   $(cat /tmp/argocd-password 2>/dev/null || echo 'see above')"
   echo ""
   echo "  Application: http://localhost:8888"
-  echo ""
-  echo "  To port-forward Argo CD (if not using loadbalancer):"
-  echo "    kubectl port-forward svc/argocd-server -n argocd 8080:443 &"
   echo ""
   echo "  Useful commands:"
   echo "    kubectl get pods -n argocd"
